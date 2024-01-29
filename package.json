@@ -1,0 +1,19 @@
+{
+  "name": "palworld-save-editor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": "./index.js",
+  "scripts": {
+    "package": "pkg . --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output ./bin/palworld-save-editor",
+    "start": "node .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "dotenv": "^16.4.1",
+    "minimist": "^1.2.8"
+  }
+}

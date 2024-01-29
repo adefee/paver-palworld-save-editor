@@ -1,0 +1,44 @@
+name: Package files
+on: [push]
+jobs:
+  package:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Git describe
+        id: ghd
+        uses: proudust/gh-describe@v1
+      # Configure to pull internal Packages, then Yarn Install
+      - name: Setup NodeJS for NPMJS Build Step 
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+      - name: Install Packager
+        run: npm install -g pkg
+      - name : Build
+        run: npm run package
+      - shell: bash
+        run: |
+          cp LICENSE bin/
+          cp README.md bin/
+          cd bin
+          zip -r ./palworld-save-editor-${{steps.ghd.outputs.describe}}.zip *
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin
+          path: bin/
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            bin/palworld-save-editor-win.exe
+            bin/palworld-save-editor-linux
+            bin/palworld-save-editor-macos
+            bin/palworld-save-editor-${{steps.ghd.outputs.describe}}.zip
+            LICENSE
+            README.md
+          generate_release_notes: true

@@ -1,0 +1,21 @@
+{
+  "savToJsonConversion": {
+    "enable": true,
+    "repoUrl": "https://github.com/cheahjs/palworld-save-tools.git",
+    "relativeInstallPath": "./palworld-save-tools-cheahjs",
+    "convertFreshEveryRun": true
+  },
+  "gameSaveDirectoryPath": "E:\\Personal\\save\\raw-files",
+  "changesToMake": {
+    "world": {
+      
+    },
+    "players": [
+      {
+        "name": "Lent",
+        "level": 35,
+        "countEffigiesFound": 1
+      }
+    ]
+  }
+}
