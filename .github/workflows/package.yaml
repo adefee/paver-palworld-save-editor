@@ -24,7 +24,7 @@ jobs:
       - name: Install Local Build Dependencies
         run: npm install
       - name : Build
-        run: npm run package
+        run: npm run package-all
       - shell: bash
         run: |
           cp LICENSE bin/
