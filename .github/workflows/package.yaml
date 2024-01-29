@@ -47,6 +47,8 @@ jobs:
             bin/palworld-save-editor-linux
             bin/palworld-save-editor-macos
             bin/palworld-save-editor-${{steps.ghd.outputs.describe}}-all.zip
+            bin/config.example.json
+            bin/config.json
             LICENSE
             README.md
           generate_release_notes: true

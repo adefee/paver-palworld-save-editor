@@ -14,6 +14,7 @@ const getAppConfig = require('./lib/getAppConfig');
 const deleteFileSync = require('./lib/deleteFile');
 const convertSavAndJson = require('./lib/convertSavAndJson');
 const filenameCompatibleTimestamp = require('./lib/filenameCompatibleTimestamp');
+const promptToClose = require('./lib/promptToClose');
 
 const attributeToCheahJs = 'Thanks much, @cheajs!';
 const successfulConversion = `${attributeToCheahJs} Looks like conversion was successful.`;
@@ -31,18 +32,21 @@ async function saveEditorMain() {
     console.info("Using default config.json path of './config.json'. If you want to use a different path, use the '-c' flag");
   }
 
-  let appConfig = getAppConfig(argv && argv['c'] ? argv['c'] : './config.json');
+  const appConfig = getAppConfig(argv && argv['c'] ? argv['c'] : './config.json');
 
   if (!appConfig) {
     errors.push('Unable to load app config, so cannot continue');
     console.err('Unable to load app config, so cannot continue. See README.md to learn about config.json and how to create it.')
-    return;
   }
 
   if (!appConfig?.gameSaveDirectoryPath || appConfig?.gameSaveDirectoryPath?.length < 1) {
     errors.push('Unable to find gameSaveDirectoryPath in config.json, so we cannot continue.');
-    console.error('The only required field in config.json is gameSaveDirectoryPath, which should be the path to a valid Palworld save directory. This field is missing. See README.md for more info.');
-    return;
+    console.error('The only required field in config.json is gameSaveDirectoryPath, which should be the path to a valid Palworld save directory. This field is missing or empty. See README.md for more info.');
+  }
+
+  if (errors.length > 0) {
+    await promptToClose();
+    process.exit(1);
   }
 
   // Setup placeholders for converted save data.
@@ -292,11 +296,11 @@ async function saveEditorMain() {
                   runPlayerSaveFileConversion = true;
                 }
               } else {
-                console.info(`Looks like we need to convert ${refinedSinglePlayer.handle}'s save file to JSON.`);
                 runPlayerSaveFileConversion = true;
               }
 
               if (runPlayerSaveFileConversion) {
+                console.info(`Converting ${refinedSinglePlayer.handle}'s save file to JSON.`);
                 const [isPlayerConversionSuccessful, playerConversionErrors] = await convertSavAndJson(savJsonRelativeInstallPath, thisPlayerSaveFilePath, `${refinedSinglePlayer.handle || refinedSinglePlayer.guid}`);
                 if (isPlayerConversionSuccessful) {
                   console.info(`${successfulConversion}`);
@@ -487,7 +491,9 @@ async function saveEditorMain() {
   }
 
   console.info('\n\n===========================')
-  console.info('Application has finished running. Scroll up for logs (we will export this to a file in a future update)')
+  console.info('Application has finished running');
+
+  await promptToClose();
 }
 
 // Rawr
