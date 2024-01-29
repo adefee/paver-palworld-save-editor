@@ -26,6 +26,7 @@ async function saveEditorMain() {
   const reportData = {
     summary: {},
     players: [],
+    changelog: [],
   };
 
   if (!argv || !argv['c']) {
@@ -430,18 +431,12 @@ async function saveEditorMain() {
         console.info(`Pro Tip: Almost any values you see above (except fields with "total" in the name) can be modified! Just add them to the "changesToMake" section in your config file!\n\n`)
       }
     }
-    
-    /**
-     * If we are this far, we're now ready to start attempting to make changes.
-     */
-    const { changesToMake } = appConfig;
-    if (!changesToMake) {
-      console.info(`Your config file doesn't list any changes to make, so none will be attempted. The app will only generate a report.`);
-    }
+  }
 
-    /**
-     * Export report as needed or if reporting isn't specified
-     */
+  /**
+   * Export report as needed or if reporting isn't specified
+   */
+  if (errors.length < 1) {
     if (appConfig?.reporting?.export !== false) {
       console.info("Exporting report as JSON...")
       try {
@@ -480,10 +475,60 @@ async function saveEditorMain() {
         console.error(`Error writing to file: ${error.message}`);
       }
     }
-
-    // TODO: Iterate over each of our changes and apply based on what we need.
   }
 
+
+  /**
+   * Handle any requested changes from the `changesToMake` section of config.json
+   * We will index based on GUID or name, depending on what's provided.
+   * If no GUID, we will make sure only one user has the given name before making changes.
+   * In such a case (multiple players w/ same name), we will note to user and make no changes until they add a GUID.
+   */
+  if (errors.length < 1) {
+    const { changesToMake = null } = appConfig;
+    if (changesToMake) {
+      console.info("Attempting to make the changes you've requested...")
+      const trackDiffs = [];
+
+      // We don't support any world changes yet, so ignore this section for now
+      if (changesToMake?.world) {
+        console.info("FYI: You specified a `world` section in `changesToMake`, but no world changes are currently supported. `world` will be ignored for now, but there may support for this in the future.")
+      }
+
+      // Make sure we have players to work with
+      if (!changesToMake?.players || !Array.isArray(changesToMake?.players) || changesToMake?.players?.length < 1) {
+        console.info("The `players` section of `changesToMake` is empty, invalid (not an array), or not present at all, so no player changes will be attempted.")
+      } else {
+        let playerToModifyIndex = 0;
+        for (const playerToModify of changesToMake?.players) {
+          let playerLabel = '';
+          if (playerToModify?.name) {
+            playerLabel = `"${playerToModify?.name}"`;
+          }
+          if (playerToModify?.guid) {
+            playerLabel += ` with GUID "${playerToModify?.guid}"`.trim();
+          }
+          if (playerLabel?.length < 1) {
+            playerLabel = `at index ${playerToModifyIndex}`
+          }
+          console.info(`Looking at changes needed for player ${playerLabel}`);
+
+          // TODO: Find the refinedPlayer and see what changes are needed.
+
+          playerToModifyIndex++;
+        }
+      }
+      
+
+      console.info('Any relevant changes to be made have now been completd.')
+    } else {
+      console.info("No changes were requested (via `changesToMake` in your config), so none will be attempted.")
+    }
+  }
+
+  /**
+   * Print out any errors we've hit along the way.
+   */
   if (errors.length > 0) {
     console.info('\n\n===========================')
     console.error('One or more errors were found during run:', errors)

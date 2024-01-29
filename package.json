@@ -6,7 +6,7 @@
   "bin": "./index.js",
   "scripts": {
     "install-packager": "npm install -g pkg",
-    "package": "pkg . --targets node18-win-x64 --output ./bin/palworld-save-editor --compress Brotli",
+    "package": "pkg . --targets node18-win-x64 --output ./bin/palworld-save-editor-win --compress Brotli",
     "package-all": "pkg . --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output ./bin/palworld-save-editor --compress Brotli",
     "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"
