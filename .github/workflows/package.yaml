@@ -1,5 +1,9 @@
-name: Package files
-on: [push]
+name: Package and Release
+on:
+  push:
+    tags:
+      # Only run workflow on pure-semantic tags for now.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   package:
     permissions:
@@ -17,6 +21,8 @@ jobs:
           node-version: '18.x'
       - name: Install Packager
         run: npm install -g pkg
+      - name: Install Local Build Dependencies
+        run: npm install
       - name : Build
         run: npm run package
       - shell: bash
@@ -24,7 +30,7 @@ jobs:
           cp LICENSE bin/
           cp README.md bin/
           cd bin
-          zip -r ./palworld-save-editor-${{steps.ghd.outputs.describe}}.zip *
+          zip -r ./palworld-save-editor-${{steps.ghd.outputs.describe}}-all.zip *
       - uses: actions/upload-artifact@v4
         with:
           name: bin
@@ -38,7 +44,7 @@ jobs:
             bin/palworld-save-editor-win.exe
             bin/palworld-save-editor-linux
             bin/palworld-save-editor-macos
-            bin/palworld-save-editor-${{steps.ghd.outputs.describe}}.zip
+            bin/palworld-save-editor-${{steps.ghd.outputs.describe}}-all.zip
             LICENSE
             README.md
           generate_release_notes: true
