@@ -1,6 +1,6 @@
 {
   "name": "palworld-save-editor",
-  "version": "0.0.2-alpha",
+  "version": "0.0.3",
   "description": "",
   "main": "index.js",
   "bin": "./index.js",

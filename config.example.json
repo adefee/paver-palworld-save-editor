@@ -3,13 +3,19 @@
     "enable": true,
     "repoUrl": "https://github.com/cheahjs/palworld-save-tools.git",
     "relativeInstallPath": "./palworld-save-tools-cheahjs",
-    "convertFreshEveryRun": true
+    "convertFreshEveryRun": false
   },
-  "gameSaveDirectoryPath": "E:\\Personal\\save\\raw-files",
+  "gameSaveDirectoryPath": "E:\\Palword\\Saved\\SaveGames\\0\\MyWorldSaveId",
+  "reporting": {
+    "export": true,
+    "exportPath": "E:\\Palword\\SaveReports",
+    "showCapturedPals": true,
+    "showPlayerStats": true,
+    "showPlayerUnlockedRecipes": true,
+    "showPlayerAppearance": true
+  },
   "changesToMake": {
-    "world": {
-      
-    },
+    "world": {},
     "players": [
       {
         "name": "Lent",

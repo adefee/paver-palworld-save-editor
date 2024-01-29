@@ -132,3 +132,9 @@ config.json
 bin/
 bin/*
 .vscode/numbered-bookmarks.json
+palworld-save-tools-cheahjs/
+palworld-save-tools-cheahjs/*
+reports/
+reports/*
+report/
+report/*

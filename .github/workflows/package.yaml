@@ -29,6 +29,8 @@ jobs:
         run: |
           cp LICENSE bin/
           cp README.md bin/
+          cp config.example.json bin/config.example.json
+          echo '{"gameSaveDirectoryPath": ""}' > bin/config.json
           cd bin
           zip -r ./palworld-save-editor-${{steps.ghd.outputs.describe}}-all.zip *
       - uses: actions/upload-artifact@v4
