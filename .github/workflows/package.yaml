@@ -34,7 +34,7 @@ jobs:
           cp config.example.json bin/config.example.json
           echo '{"gameSaveDirectoryPath": ""}' > bin/config.json
           cd bin
-          zip -r ./palworld-save-editor-${{steps.ghd.outputs.describe}}-all.zip *
+          zip -r ./paver-${{steps.ghd.outputs.describe}}-all.zip *
       - uses: actions/upload-artifact@v4
         with:
           name: bin
@@ -45,10 +45,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/palworld-save-editor-win.exe
-            bin/palworld-save-editor-linux
-            bin/palworld-save-editor-macos
-            bin/palworld-save-editor-${{steps.ghd.outputs.describe}}-all.zip
+            bin/paver-win.exe
+            bin/paver-linux
+            bin/paver-macos
+            bin/paver-${{steps.ghd.outputs.describe}}-all.zip
             bin/config.example.json
             bin/config.json
             LICENSE

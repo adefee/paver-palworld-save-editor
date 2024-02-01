@@ -244,7 +244,12 @@ async function saveEditorMain() {
     } = levelSavJson.header;
 
     // This should be an array of objects, each of which contains some general player data like level, handle, etc.
-    worldPlayerData = levelSavJson.properties.worldSaveData.value.CharacterSaveParameterMap.value;
+    worldPlayerData = levelSavJson?.properties?.worldSaveData?.value?.CharacterSaveParameterMap?.value;
+
+    if (!worldPlayerData) {
+      console.error(worldPlayerData);
+      errors.push('Unable to find player data in Level.sav, so we cannot continue. This might happen if the server is brand new with no characters that have levelled up yet.');
+    }
 
     // Will hold a modified version of worldPlayerData, if we make any changes to it.
     modifiedWorldPlayerData = worldPlayerData;
@@ -265,7 +270,7 @@ async function saveEditorMain() {
      * Before we continue, we can do some validation.
      * For exmaple, we'd expect to find one save file per player entry.
      */
-    if (worldPlayerData.length < 1) {
+    if (worldPlayerData?.length < 1) {
       errors.push('No player data found in Level.sav, so we cannot continue.');
     }
 
@@ -459,13 +464,13 @@ async function saveEditorMain() {
         reportData.players = refinedPlayerMap;
       }
 
-      // if (appConfig?.reporting?.showPlayerData !== false) {
-      //   console.info('\n\n===========================')
-      //   console.info(`Data on all of your current players`, refinedPlayerMap);
-      //   console.info('===========================')
+      if (appConfig?.reporting?.showPlayerData !== false) {
+        console.info('\n\n===========================')
+        console.info(`Data on all of your current players`, refinedPlayerMap);
+        console.info('===========================')
 
-      //   console.info(`Pro Tip: Almost any values you see above (except fields with "total" in the name) can be modified! Just add them to the "changesToMake" section in your config file!\n\n`)
-      // }
+        console.info(`Pro Tip: Almost any values you see above (except fields with "total" in the name) can be modified! Just add them to the "changesToMake" section in your config file!\n\n`)
+      }
     }
   }
   /**
@@ -668,44 +673,42 @@ async function saveEditorMain() {
   /**
    * Export report as needed or if reporting isn't specified
    */
-  if (errors.length < 1) {
-    if (appConfig?.reporting?.export !== false) {
-      console.info("Exporting report as JSON...")
-      try {
+  if (appConfig?.reporting?.export !== false) {
+    console.info("Exporting report as JSON...")
+    try {
 
-        // Add generation timestmap to report
-        reportData.summary.reportStartedAt = appStartedTimestamp;
-        reportData.summary.reportExportedAt = new Date().toISOString();
+      // Add generation timestmap to report
+      reportData.summary.reportStartedAt = appStartedTimestamp;
+      reportData.summary.reportExportedAt = new Date().toISOString();
 
-        let outputFilePath = `./reports/${filenameCompatibleTimestamp()}.json`;
-        // If we have a path given, use that instead
-        if (appConfig?.reporting?.exportPath && appConfig?.reporting?.exportPath?.endsWith('.json')) {
-          console.info("exportPath was given and looks like a filename, so we'll use that.")
-          outputFilePath = appConfig?.reporting?.exportPath;
-        } else if (appConfig?.reporting?.exportPath) {
-          // Treat it as a directory
-          console.info('exportPath was given without a .json extension, so we will treat it as a directory and use a timestamp.json filename.')
-          outputFilePath = `${appConfig?.reporting?.exportPath}/${filenameCompatibleTimestamp()}.json`;
-        }
-
-        const exportReportDir = path.dirname(outputFilePath);
-        fs.mkdirSync(exportReportDir, { recursive: true });
-
-        const finalReportData = {
-          ...reportData,
-        }
-
-        // Just easier to do this check here than earlier
-        // Exclude player data if we've explicitly declared showPlayerData as false
-        if (appConfig?.reporting?.showPlayerData === false) {
-          finalReportData.players = undefined;
-        }
-
-        fs.writeFileSync(outputFilePath, JSON.stringify(finalReportData, null, 2), 'utf8');
-        console.log(`Report written written to ${outputFilePath}`);
-      } catch (error) {
-        console.error(`Error writing to file: ${error.message}`);
+      let outputFilePath = `./reports/${filenameCompatibleTimestamp()}.json`;
+      // If we have a path given, use that instead
+      if (appConfig?.reporting?.exportPath && appConfig?.reporting?.exportPath?.endsWith('.json')) {
+        console.info("exportPath was given and looks like a filename, so we'll use that.")
+        outputFilePath = appConfig?.reporting?.exportPath;
+      } else if (appConfig?.reporting?.exportPath) {
+        // Treat it as a directory
+        console.info('exportPath was given without a .json extension, so we will treat it as a directory and use a timestamp.json filename.')
+        outputFilePath = `${appConfig?.reporting?.exportPath}/${filenameCompatibleTimestamp()}.json`;
       }
+
+      const exportReportDir = path.dirname(outputFilePath);
+      fs.mkdirSync(exportReportDir, { recursive: true });
+
+      const finalReportData = {
+        ...reportData,
+      }
+
+      // Just easier to do this check here than earlier
+      // Exclude player data if we've explicitly declared showPlayerData as false
+      if (appConfig?.reporting?.showPlayerData === false) {
+        finalReportData.players = undefined;
+      }
+
+      fs.writeFileSync(outputFilePath, JSON.stringify(finalReportData, null, 2), 'utf8');
+      console.log(`Report written written to ${outputFilePath}`);
+    } catch (error) {
+      console.error(`Error writing to file: ${error.message}`);
     }
   }
 

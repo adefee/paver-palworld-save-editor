@@ -1,13 +1,13 @@
 {
-  "name": "palworld-save-editor",
-  "version": "0.0.6",
-  "description": "",
+  "name": "@adefee/palworld-save-editor",
+  "version": "1.0.0",
+  "description": "Comprehensive and extensible save editor and reporting tool for Palworld",
   "main": "index.js",
   "bin": "./index.js",
   "scripts": {
     "install-packager": "npm install -g pkg",
-    "package": "pkg . --targets node18-win-x64 --output ./bin/palworld-save-editor-win --compress Brotli",
-    "package-all": "pkg . --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output ./bin/palworld-save-editor --compress Brotli",
+    "package": "pkg . --targets node18-win-x64 --output ./bin/paver-win --compress Brotli",
+    "package-all": "pkg . --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output ./bin/paver --compress Brotli",
     "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
