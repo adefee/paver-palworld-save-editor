@@ -18,7 +18,7 @@
     "world": {},
     "players": [
       {
-        "name": "Lent",
+        "handle": "Lent",
         "level": 35,
         "countEffigiesFound": 1
       }

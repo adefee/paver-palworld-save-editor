@@ -3,6 +3,7 @@ const fs = require('fs');
 const { promisify } = require('util');
 const { exec } = require('child_process');
 const path = require('path');
+const appPackage = require('./package.json'); // Grab version data
 const execAsync = promisify(exec);
 require('dotenv').config()
 var argv = require('minimist')(process.argv.slice(2));
@@ -11,17 +12,20 @@ var argv = require('minimist')(process.argv.slice(2));
 const fileExists = require('./lib/fileExists');
 const cloneGitRepo = require('./lib/cloneGitRepo');
 const getAppConfig = require('./lib/getAppConfig');
-const deleteFileSync = require('./lib/deleteFile');
+const deleteFileSync = require('./lib/deleteFileSync');
 const convertSavAndJson = require('./lib/convertSavAndJson');
 const filenameCompatibleTimestamp = require('./lib/filenameCompatibleTimestamp');
 const promptToClose = require('./lib/promptToClose');
+const normalizeGuid = require('./lib/normalizeGuid');
+const { updatePlayerLevelSavData, updatePlayerPersonalSaveData } = require('./lib/playerDataUpdates');
+const writeJsonFile = require('./lib/writeJsonFile');
 
 const attributeToCheahJs = 'Thanks much, @cheajs!';
 const successfulConversion = `${attributeToCheahJs} Looks like conversion was successful.`;
 
 // Main saveEditor
 async function saveEditorMain() {
-  const errors = [];
+  let errors = [];
   const appStartedTimestamp = new Date().toISOString();
   const reportData = {
     summary: {},
@@ -53,7 +57,13 @@ async function saveEditorMain() {
   // Setup placeholders for converted save data.
   let levelSavJson = null; // This will be the converted Level.sav file, if it exists.
   let levelSavMetaJson = null; // This will be the converted LevelMeta.sav file, if it exists.
+  let playerRawSavJsonByGuid = {}; // This will be a map of player GUIDs to their converted save files.
   let refinedPlayerMap = []; // This will be a refined version of the Players list that we assemble
+  let changesMade = [];
+  /**
+   * Placeholder for `levelSavJson.properties.worldSaveData.value.CharacterSaveParameterMap.value`
+   */
+  let worldPlayerData = null;
 
   const {
     gameSaveDirectoryPath,
@@ -62,6 +72,7 @@ async function saveEditorMain() {
       relativeInstallPath: './palworld-save-tools-cheahjs',
       repoUrl: 'https://github.com/cheahjs/palworld-save-tools.git',
       convertFreshEveryRun: true,
+      cleanUpJsonAfterConversion: true,
     },
   } = appConfig;
 
@@ -70,6 +81,7 @@ async function saveEditorMain() {
     relativeInstallPath: savJsonRelativeInstallPath,
     repoUrl: savJsonRepoUrl,
     convertFreshEveryRun,
+    cleanUpJsonAfterConversion,
   } = savToJsonConversion;
 
   try {
@@ -232,7 +244,11 @@ async function saveEditorMain() {
     } = levelSavJson.header;
 
     // This should be an array of objects, each of which contains some general player data like level, handle, etc.
-    const worldPlayerData = levelSavJson.properties.worldSaveData.value.CharacterSaveParameterMap.value;
+    worldPlayerData = levelSavJson.properties.worldSaveData.value.CharacterSaveParameterMap.value;
+
+    // Will hold a modified version of worldPlayerData, if we make any changes to it.
+    modifiedWorldPlayerData = worldPlayerData;
+
 
     reportData.summary = {
       magic,
@@ -254,17 +270,33 @@ async function saveEditorMain() {
     }
 
     if (errors.length < 1) {
+      const capturedPalsByGuid = {};
+
       let iteratedPlayerIndex = 0;
       for (const singleRawPlayer of worldPlayerData) {
         let refinedSinglePlayer = {};
         const nestedPlayerData = singleRawPlayer?.value?.RawData?.value?.object?.SaveParameter?.value;
+
+        // Before continuing, make sure this is actually a player. Otherwise, it's a Pal owned by a player
+        if (
+          normalizeGuid(singleRawPlayer?.key?.PlayerUId?.value) === '00000000000000000000000000000000' &&
+          nestedPlayerData?.CharacterID?.value && nestedPlayerData?.CharacterID?.value?.length > 0
+        ) {
+          // This is a Pal, not a player. Add it to our map of captured Pals.
+          if (process.env.DEBUG) {
+            console.info("Found a Pal Reference, skipping. This is probably a Pal owned by a player - a future update will include this data and likely make it editable!");
+          }
+          continue;
+        }
+
         refinedSinglePlayer = {
           guid: singleRawPlayer?.key?.PlayerUId?.value || 'N/A',
+          levelSavPlayerIndex: iteratedPlayerIndex,
         }
 
         // Determine expected save file name based on GUID
         if (refinedSinglePlayer.guid !== 'N/A') {
-          refinedSinglePlayer.expectedSaveFileName = `${refinedSinglePlayer.guid?.replace(/-/g, '').toUpperCase()}.sav`;
+          refinedSinglePlayer.expectedSaveFileName = `${normalizeGuid(refinedSinglePlayer.guid)}.sav`;
         } else {
           errors.push(`The player at index ${iteratedPlayerIndex} does not have a valid GUID, so we cannot determine their save file name. This may indicate an incomplete or corrupted player record. No modifications will attempt to be made to this player!`)
         }
@@ -317,6 +349,10 @@ async function saveEditorMain() {
                 const thisPlayerSavParsedJsonData = JSON.parse(thisPlayerSavRawJsonData);
                 if (thisPlayerSavParsedJsonData) {
                   
+                  // Add the full raw to our playerRawSavJsonByGuid map.
+                  // Later, we'll modify this data directly then write back to the SAV.json on disk
+                  playerRawSavJsonByGuid[refinedSinglePlayer.guid] = thisPlayerSavParsedJsonData;
+
                   /**
                    * Player file has some stuff the Level.sav doesn't have.
                    * For example, TechnologyPoints, UnlockedRecipeTechnologyNames, and PlayerCharacterMakeData (appearance) data.
@@ -423,13 +459,209 @@ async function saveEditorMain() {
         reportData.players = refinedPlayerMap;
       }
 
-      if (appConfig?.reporting?.showPlayerData !== false) {
-        console.info('\n\n===========================')
-        console.info(`Data on all of your current players`, refinedPlayerMap);
-        console.info('===========================')
+      // if (appConfig?.reporting?.showPlayerData !== false) {
+      //   console.info('\n\n===========================')
+      //   console.info(`Data on all of your current players`, refinedPlayerMap);
+      //   console.info('===========================')
 
-        console.info(`Pro Tip: Almost any values you see above (except fields with "total" in the name) can be modified! Just add them to the "changesToMake" section in your config file!\n\n`)
+      //   console.info(`Pro Tip: Almost any values you see above (except fields with "total" in the name) can be modified! Just add them to the "changesToMake" section in your config file!\n\n`)
+      // }
+    }
+  }
+  /**
+   * Handle any requested changes from the `changesToMake` section of config.json
+   * We will index based on GUID or name, depending on what's provided.
+   * If no GUID, we will make sure only one user has the given name before making changes.
+   * In such a case (multiple players w/ same name), we will note to user and make no changes until they add a GUID.
+   */
+  if (errors.length < 1) {
+    const { changesToMake = null } = appConfig;
+    if (changesToMake) {
+      console.info("Attempting to make the changes you've requested...")
+
+      // We don't support any world changes yet, so ignore this section for now
+      if (changesToMake?.world) {
+        console.info("FYI: You specified a `world` section in `changesToMake`, but no world changes are currently supported. `world` will be ignored for now, but there may support for this in the future.")
       }
+
+      // Make sure we have players to work with
+      if (!changesToMake?.players || !Array.isArray(changesToMake?.players) || changesToMake?.players?.length < 1) {
+        console.info("The `players` section of `changesToMake` is empty, invalid (not an array), or not present at all, so no player changes will be attempted.")
+      } else {
+        let playerToModifyIndex = 0;
+        for (const playerToModify of changesToMake?.players) {
+          let playerLabel = '';
+          if (playerToModify?.handle) {
+            playerLabel = `"${playerToModify?.handle}"`;
+          }
+          if (playerToModify?.guid) {
+            playerLabel = `${playerLabel.trim()} with GUID "${playerToModify?.guid}"`;
+          }
+          if (playerLabel?.length < 1) {
+            playerLabel = `at index ${playerToModifyIndex}`
+          }
+          console.info(`Looking at changes needed for player ${playerLabel}.`);
+
+          const findPlayerByGuid = refinedPlayerMap.filter((player) => normalizeGuid(player?.guid) === normalizeGuid(playerToModify?.guid));
+
+          let foundPlayer = null;
+
+          if (findPlayerByGuid?.length === 1) {
+            console.info(`Found player by GUID (${findPlayerByGuid[0]?.guid}), so we'll use that.`)
+            foundPlayer = findPlayerByGuid[0];
+          } else if (findPlayerByGuid?.length > 1) {
+            console.info(`Found multiple players with GUID (${findPlayerByGuid[0]?.guid}). Because this is indeterminate, for now (for safety) we won't make any modifications to this player. This normally shouldn't happen, so it might be a sign of potential weirdness with your saves!`)
+            foundPlayer = true;
+            continue;
+          }
+
+          if (!foundPlayer && playerToModify?.handle) {
+            const findPlayerByHandle = refinedPlayerMap.filter((player) => player?.handle?.toLowerCase() === playerToModify?.handle?.toLowerCase());
+            if (findPlayerByHandle?.length > 1) {
+              console.info(`Found multiple players with handle (${findPlayerByHandle[0]?.handle}). Because this is indeterminate, for now (for safety) we won't make any modifications to this player. This normally shouldn't happen, so it might be a sign of potential weirdness with your saves!`)
+              foundPlayer = findPlayerByHandle[0];
+              continue;
+            } else if (findPlayerByHandle?.length === 1) {
+              console.info(`Found one player by handle ("${findPlayerByHandle[0]?.handle}"), so we'll use that.`)
+              foundPlayer = findPlayerByHandle[0];
+            } else if (findPlayerByHandle?.length < 1) {
+              console.info(`Unable to find player with handle ("${playerToModify.handle}"). Try adding a GUID to your config.json instead.`)
+            }
+          }
+
+          if (foundPlayer) {
+            console.info(`Found player ("${foundPlayer.handle}", GUID ${foundPlayer.guid}) to modify.`)
+
+            // Get relevant world data for this player
+            const targetPlayerLevelSavJson = worldPlayerData?.[foundPlayer.levelSavPlayerIndex]?.value?.RawData?.value?.object?.SaveParameter?.value;
+
+            // Make Level.sav changes for this player
+            const [updatedPlayerLevelSavJson, levelSavJsonChangelog, levelSavJsonErrors] =
+              updatePlayerLevelSavData(
+                targetPlayerLevelSavJson,
+                playerToModify,
+                foundPlayer.guid || foundPlayer.handle
+              );
+
+            if (appConfig?.reporting?.showChangesMade) {
+              reportData.changelog = [...reportData.changelog, ...levelSavJsonChangelog];
+            }
+            
+            if (levelSavJsonErrors.length > 0) {
+              console.error(`Ran into ${levelSavJsonErrors.length} errors modifying this user!. Out of an abundance of caution, no changes for this user will be written into your save file! Check your errors in logs or report for details.`);
+
+              errors = [...errors, ...levelSavJsonErrors];
+            } else {
+              // Now let's go commit those changes!
+              console.info(`Staging changes to Level.sav.json for player "${foundPlayer.handle}" (GUID ${foundPlayer.guid})...`)
+              modifiedWorldPlayerData[foundPlayer.levelSavPlayerIndex].value.RawData.value.object.SaveParameter.value = {
+                ...updatedPlayerLevelSavJson,
+              };
+            }
+
+            // Get relevant player save (Players/XXX.sav) for this player
+            const targetPlayerSaveJson =
+              playerRawSavJsonByGuid[foundPlayer.guid]?.properties?.SaveData?.value;
+
+            const [updatedSavJson, playerSavJsonChangelog, playerSavJsonErrors] = updatePlayerPersonalSaveData(
+              targetPlayerSaveJson,
+              playerToModify,
+              foundPlayer.guid || foundPlayer.handle
+            );
+
+            if (appConfig?.reporting?.showChangesMade) {
+              reportData.changelog = [...reportData.changelog, ...playerSavJsonChangelog];
+            }
+
+            if (playerSavJsonErrors.length > 0) {
+              console.error(`Ran into ${playerSavJsonErrors.length} errors modifying this user!. Out of an abundance of caution, no changes for this user will be written into your save file! Check your errors in logs or report for details.`);
+              errors = [...errors, ...playerSavJsonErrors.errors];
+            } else {
+              // Now let's go commit those changes!
+              console.info(`Staging changes to Players/${normalizeGuid(foundPlayer.guid)}.sav.json for player "${foundPlayer.handle}"...`)
+
+              if (appConfig?.removeAttribution !== true) {
+                const toolsUsed = [`adefee/palworld-save-editor@v${appPackage.version}`];
+                if (appConfig?.savToJsonConversion?.enable) toolsUsed.push('cheahjs/palworld-save-tools');
+                playerRawSavJsonByGuid[foundPlayer.guid].header.save_edited = {
+                  lastEdited: new Date().toISOString(),
+                  toolsUsed,
+                }
+              }
+
+              // Update entry.
+              playerRawSavJsonByGuid[foundPlayer.guid].properties.SaveData.value = {
+                ...updatedSavJson,
+              }
+
+              // Write to disk!t
+              const targetPlayerSavJson = `${gameSaveDirectoryPath}/Players/${normalizeGuid(foundPlayer.guid)}.sav.json`;
+              const targetPlayerSavPath = `${gameSaveDirectoryPath}/Players/${normalizeGuid(foundPlayer.guid)}.sav`;
+              writeJsonFile(targetPlayerSavJson, playerRawSavJsonByGuid[foundPlayer.guid]);
+
+              // Delete target sav if exists; CheahJS' tool won't overwrite if exists.
+              if (fileExists(targetPlayerSavPath)) {
+                deleteFileSync(`${targetPlayerSavPath}`);
+              }
+
+              // Convert it back into SAV
+              await convertSavAndJson(savJsonRelativeInstallPath, targetPlayerSavJson, `Players/${normalizeGuid(foundPlayer.guid)}.sav.json`);
+
+              // Cleanup old JSON
+              if (cleanUpJsonAfterConversion != false) {
+                deleteFileSync(`${targetPlayerSavJson}`);
+              }
+            }
+          }
+
+          playerToModifyIndex++;
+        }
+
+        // Now that we've iterated through all players, let's write the changes to disk.
+        if (errors.length > 0) {
+          console.error(`Skipping final write step to Level.sav.json due to ${errors.length} errors. See logs/report for details.`);
+        } else {
+
+          // TODO: Better abstract this.
+
+          // Write relevant changes to Level.sav.json
+          console.info(`Writing changes to Level.sav.json...`)
+          const newLevelJsonBlobToWrite = levelSavJson;
+          newLevelJsonBlobToWrite.properties.worldSaveData.value.CharacterSaveParameterMap.value = modifiedWorldPlayerData;
+          if (appConfig?.removeAttribution !== true) {
+            const toolsUsed = [`adefee/palworld-save-editor@v${appPackage.version}`];
+            if (appConfig?.savToJsonConversion?.enable) toolsUsed.push('cheahjs/palworld-save-tools');
+            newLevelJsonBlobToWrite.header.save_edited = {
+              lastEdited: new Date().toISOString(),
+              toolsUsed,
+            }
+          }
+
+          // Write to disk!
+          const targetLevelSavJsonPath = `${gameSaveDirectoryPath}/Level.sav.json`;
+          const targetLevelSavPath = `${gameSaveDirectoryPath}/Level.sav`;
+          writeJsonFile(targetLevelSavJsonPath, newLevelJsonBlobToWrite);
+
+          // Delete target sav if exists; CheahJS' tool won't overwrite if exists.
+          if (fileExists(targetLevelSavPath)) {
+            deleteFileSync(`${targetLevelSavPath}`);
+          }
+
+          // Convert it back into SAV
+          await convertSavAndJson(savJsonRelativeInstallPath, targetLevelSavJsonPath, 'Level.sav.json');
+
+          // Cleanup old JSON
+          if (cleanUpJsonAfterConversion != false) {
+            deleteFileSync(`${targetLevelSavJsonPath}`);
+          }
+
+        }
+      }
+      
+
+      console.info('Any relevant changes to be made have now been completd.')
+    } else {
+      console.info("No changes were requested (via `changesToMake` in your config), so none will be attempted.")
     }
   }
 
@@ -474,55 +706,6 @@ async function saveEditorMain() {
       } catch (error) {
         console.error(`Error writing to file: ${error.message}`);
       }
-    }
-  }
-
-
-  /**
-   * Handle any requested changes from the `changesToMake` section of config.json
-   * We will index based on GUID or name, depending on what's provided.
-   * If no GUID, we will make sure only one user has the given name before making changes.
-   * In such a case (multiple players w/ same name), we will note to user and make no changes until they add a GUID.
-   */
-  if (errors.length < 1) {
-    const { changesToMake = null } = appConfig;
-    if (changesToMake) {
-      console.info("Attempting to make the changes you've requested...")
-      const trackDiffs = [];
-
-      // We don't support any world changes yet, so ignore this section for now
-      if (changesToMake?.world) {
-        console.info("FYI: You specified a `world` section in `changesToMake`, but no world changes are currently supported. `world` will be ignored for now, but there may support for this in the future.")
-      }
-
-      // Make sure we have players to work with
-      if (!changesToMake?.players || !Array.isArray(changesToMake?.players) || changesToMake?.players?.length < 1) {
-        console.info("The `players` section of `changesToMake` is empty, invalid (not an array), or not present at all, so no player changes will be attempted.")
-      } else {
-        let playerToModifyIndex = 0;
-        for (const playerToModify of changesToMake?.players) {
-          let playerLabel = '';
-          if (playerToModify?.name) {
-            playerLabel = `"${playerToModify?.name}"`;
-          }
-          if (playerToModify?.guid) {
-            playerLabel += ` with GUID "${playerToModify?.guid}"`.trim();
-          }
-          if (playerLabel?.length < 1) {
-            playerLabel = `at index ${playerToModifyIndex}`
-          }
-          console.info(`Looking at changes needed for player ${playerLabel}`);
-
-          // TODO: Find the refinedPlayer and see what changes are needed.
-
-          playerToModifyIndex++;
-        }
-      }
-      
-
-      console.info('Any relevant changes to be made have now been completd.')
-    } else {
-      console.info("No changes were requested (via `changesToMake` in your config), so none will be attempted.")
     }
   }
 
