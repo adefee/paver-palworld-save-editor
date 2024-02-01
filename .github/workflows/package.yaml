@@ -1,6 +1,8 @@
 name: Package and Release
 on:
   push:
+    branches: 
+      - main
     tags:
       # Only run workflow on pure-semantic tags for now.
       - 'v[0-9]+.[0-9]+.[0-9]+'
