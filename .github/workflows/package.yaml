@@ -21,16 +21,26 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
       - name: Install Packager
-        run: npm install -g pkg
+        run: yarn install -g pkg
       - name: Install Local Build Dependencies
-        run: npm install
-      - name : Build
+        run: yarn install
+      - name: Build TS -> dist
+        run: yarn build
+      - name: Copy files into dist
+        run: |
+          cp package.json dist/
+          cp yarn-lock.json dist/
+          cp node_modules dist/ -r
+      - name : Package
         run: npm run package-all
       - shell: bash
         run: |
           cp LICENSE bin/
           cp README.md bin/
+          cp src/helpers bin/ -r
           cp config.example.json bin/config.example.json
           echo '{"gameSaveDirectoryPath": ""}' > bin/config.json
           cd bin
@@ -45,12 +55,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-win.exe
-            bin/paver-linux
-            bin/paver-macos
             bin/paver-${{steps.ghd.outputs.describe}}-all.zip
             bin/config.example.json
             bin/config.json
+            bin/helpers
             LICENSE
             README.md
           generate_release_notes: true

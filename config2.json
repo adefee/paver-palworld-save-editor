@@ -1,0 +1,13 @@
+{
+  "gameSaveDirectoryPath": "../test-tiny-save",
+  "changesToMake": {
+    "enableGuardrails": true,
+    "players": [
+      {
+        "handle": "Lent",
+        "level": 42,
+        "ancientTechPoints": 42
+      }
+    ]
+  }
+}

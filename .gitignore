@@ -138,3 +138,7 @@ reports/
 reports/*
 report/
 report/*
+datastore/
+datastore/*
+helpers/cheahjs-save-tools/
+helpers/cheahjs-save-tools/*
