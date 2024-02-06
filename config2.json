@@ -4,9 +4,35 @@
     "enableGuardrails": true,
     "players": [
       {
-        "handle": "Lent",
+        "guid": "dd1b2130-0000-0000-0000-000000000000",
+        "handle": "Lent42",
         "level": 42,
-        "ancientTechPoints": 42
+        "ancientTechPoints": 42,
+        "techPoints": 42,
+        "countEffigiesFound": 42,
+        "unusedStatusPoint": 42,
+        "statusPoints": {
+          "maxHp": 42,
+          "maxSp": 42,
+          "attack": 42,
+          "weight": 42,
+          "catchRate": 42,
+          "workSpeed": 42
+        },
+        "appearance": {
+          "bodyType": "TypeB",
+          "torsoSize": 1,
+          "armSize": 1,
+          "legSize": 1,
+          "headType": "type2",
+          "hairType": "type2",
+          "hairColor": "soon - colors will be added here soon!",
+          "browColor": "soon - colors will be added here soon!",
+          "bodyColor": "soon - colors will be added here soon!",
+          "bodySubsurfaceColor": "soon - colors will be added here soon!",
+          "eyeColor": "soon - colors will be added here soon!",
+          "eyeMaterialName": "Type002"
+        }
       }
     ]
   }

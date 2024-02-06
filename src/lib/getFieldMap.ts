@@ -260,22 +260,13 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
           // validate: (val) => Number.isInteger(val) && val >= 0,
           // validationError: 'Level should be an integer >= 0',
         },
-        relicsInPossession: {
-          info: "This is expected to be a count of unspent effigy points for the player.",
-          parameterId: null,
-          targetKey: 'RecordData.value.RelicPossessNum.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'Level should be an integer >= 0',
-          whatDoesThiDo: true,
-        },
         countEffigiesFound: {
           info: "Same as `relicsInPossession`. This is expected to be a count of unspent effigy points for the player.",
           parameterId: null,
           targetKey: 'RecordData.value.RelicPossessNum.value',
           type: 'IntProperty',
           validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'Level should be an integer >= 0',
+          validationError: 'Effigy count should be an integer >= 0',
           whatDoesThiDo: true,
         },
         voiceId: {

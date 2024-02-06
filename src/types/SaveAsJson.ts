@@ -850,3 +850,416 @@ export interface ISaveAsJson {
   properties?: ISaveAsJsonProperties,
   trailer?: ISaveAsJsonTrailer,
 }
+
+/**
+ * The actual player data field inside of a Players/<guid>.sav.json file
+ */
+export interface ISaveAsPlayerJsonPlayerDataField {
+  PlayerUId?: {
+    struct_type?: "Guid",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    /**
+     * The GUID of the player
+     */
+    value?: string,
+    type: "StructProperty"
+  },
+  IndividualId: {
+    struct_type?: "PalInstanceID",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      PlayerUId?: {
+        struct_type?: "Guid",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        /**
+         * The GUID of the player
+         */
+        value?: string,
+        type: "StructProperty"
+      },
+      InstanceId: {
+        struct_type?: "Guid",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        // Instance ID of
+        value?: string,
+        type: "StructProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  LastTransform: {
+    struct_type?: "Transform",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      Rotation: {
+        struct_type?: "Quat",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "x": number,
+          "y": number,
+          "z": number,
+          "w": number
+        },
+        type: "StructProperty"
+      },
+      Translation?: {
+        struct_type?: "Vector",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "x": number,
+          "y": number,
+          "z": number
+        },
+        type: "StructProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  PlayerCharacterMakeData?: {
+    struct_type?: "PalPlayerDataCharacterMakeInfo",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      BodyMeshName?: {
+        id: null,
+        value?: "TypeA",
+        type: "NameProperty"
+      },
+      HeadMeshName?: {
+        id: null,
+        value?: "type1",
+        type: "NameProperty"
+      },
+      HairMeshName?: {
+        id: null,
+        value?: "type1",
+        type: "NameProperty"
+      },
+      HairColor?: {
+        struct_type?: "LinearColor",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "r": number,
+          "g": number,
+          "b": number,
+          "a": number
+        },
+        type: "StructProperty"
+      },
+      BrowColor?: {
+        struct_type?: "LinearColor",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "r": number,
+          "g": number,
+          "b": number,
+          "a": number
+        },
+        type: "StructProperty"
+      },
+      BodyColor?: {
+        struct_type?: "LinearColor",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "r": number,
+          "g": number,
+          "b": number,
+          "a": number
+        },
+        type: "StructProperty"
+      },
+      BodySubsurfaceColor?: {
+        struct_type?: "LinearColor",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "r": number,
+          "g": number,
+          "b": number,
+          "a": number
+        },
+        type: "StructProperty"
+      },
+      EyeColor?: {
+        struct_type?: "LinearColor",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          "r": number,
+          "g": number,
+          "b": number,
+          "a": number
+        },
+        type: "StructProperty"
+      },
+      EyeMaterialName?: {
+        id: null,
+        value?: "Type001",
+        type: "NameProperty"
+      },
+      VoiceID?: {
+        id: null,
+        value?: number,
+        type: "IntProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  OtomoCharacterContainerId?: {
+    struct_type?: "PalContainerId",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      ID?: {
+        struct_type?: "Guid",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        /**
+         * GUID of Otomo character Id
+         */
+        value?: string,
+        type: "StructProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  inventoryInfo?: {
+    struct_type?: "PalPlayerDataInventoryInfo",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      CommonContainerId?: {
+        struct_type?: "PalContainerId",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          ID?: {
+            struct_type?: "Guid",
+            struct_id?: "00000000-0000-0000-0000-000000000000",
+            id: null,
+            /**
+             * Id of corresponding container
+             */
+            value?: string,
+            type: "StructProperty"
+          }
+        },
+        type: "StructProperty"
+      },
+      DropSlotContainerId?: {
+        struct_type?: "PalContainerId",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          ID?: {
+            struct_type?: "Guid",
+            struct_id?: "00000000-0000-0000-0000-000000000000",
+            id: null,
+            /**
+             * Id of corresponding container
+             */
+            value?: string,
+            type: "StructProperty"
+          }
+        },
+        type: "StructProperty"
+      },
+      EssentialContainerId?: {
+        struct_type?: "PalContainerId",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          ID?: {
+            struct_type?: "Guid",
+            struct_id?: "00000000-0000-0000-0000-000000000000",
+            id: null,
+            /**
+             * Id of corresponding container
+             */
+            value?: string,
+            type: "StructProperty"
+          }
+        },
+        type: "StructProperty"
+      },
+      WeaponLoadOutContainerId?: {
+        struct_type?: "PalContainerId",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          ID?: {
+            struct_type?: "Guid",
+            struct_id?: "00000000-0000-0000-0000-000000000000",
+            id: null,
+            /**
+             * Id of corresponding container
+             */
+            value?: string,
+            type: "StructProperty"
+          }
+        },
+        type: "StructProperty"
+      },
+      PlayerEquipArmorContainerId?: {
+        struct_type?: "PalContainerId",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          ID?: {
+            struct_type?: "Guid",
+            struct_id?: "00000000-0000-0000-0000-000000000000",
+            id: null,
+            /**
+             * Id of corresponding container
+             */
+            value?: string,
+            type: "StructProperty"
+          }
+        },
+        type: "StructProperty"
+      },
+      FoodEquipContainerId?: {
+        struct_type?: "PalContainerId",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        value?: {
+          ID?: {
+            struct_type?: "Guid",
+            struct_id?: "00000000-0000-0000-0000-000000000000",
+            id: null,
+            /**
+             * Id of corresponding container
+             */
+            value?: string,
+            type: "StructProperty"
+          }
+        },
+        type: "StructProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  /**
+   * Availble technology points.
+   */
+  TechnologyPoint?: {
+    id: null,
+    value?: number,
+    type: "IntProperty"
+  },
+  /**
+   * Ancient technology points
+   */
+  bossTechnologyPoint?: {
+    id: null,
+    value?: number,
+    type: "IntProperty"
+  },
+  /**
+   * Unlocked recipes
+   */
+  UnlockedRecipeTechnologyNames?: {
+    "array_type": "NameProperty",
+    id: null,
+    value?: {
+      values: string[]
+    },
+    type: "ArrayProperty"
+  },
+  PalStorageContainerId?: {
+    struct_type?: "PalContainerId",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      ID?: {
+        struct_type?: "Guid",
+        struct_id?: "00000000-0000-0000-0000-000000000000",
+        id: null,
+        /**
+         * Id of corresponding container
+         */
+        value?: string,
+        type: "StructProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  RecordData?: {
+    struct_type?: "PalLoggedinPlayerSaveDataRecordData",
+    struct_id?: "00000000-0000-0000-0000-000000000000",
+    id: null,
+    value?: {
+      /**
+       * Unlocked fast travel points
+       */
+      FastTravelPointUnlockFlag?: {
+        "key_type": "NameProperty",
+        "value_type": "BoolProperty",
+        "key_struct_type": null,
+        "value_struct_type": null,
+        id: null,
+        value?: { key: string, value: boolean }[],
+        type: "MapProperty"
+      },
+      /**
+       * Number of effigy points (unspent)
+       */
+      RelicPossessNum?: {
+        value?: number,
+        id: null,
+        type: "IntProperty"
+      }
+    },
+    type: "StructProperty"
+  },
+  bIsSelectedInitMapPoint?: {
+    value?: boolean,
+    id: null,
+    type: "BoolProperty"
+  }
+}
+
+
+/**
+ * Main beef of the save file, containing properties and data.
+ */
+export interface ISaveAsPlayerJsonProperties {
+  Version?: {
+    id: null,
+    value: number
+    type: "IntProperty",
+  },
+  Timestamp?: {
+    struct_type?: "DateTime",
+    struct_id?: string,
+    id: null,
+    value: number,
+    type: "StructProperty",
+  },
+  SaveData?: {
+    struct_type?: "StructProperty",
+    struct_id?: string,
+    id?: null,
+    type?: "StructProperty",
+    value?: ISaveAsPlayerJsonPlayerDataField
+  }
+}
+
+/**
+ * Interface matching expected JSON structure for Player/<guid>.sav files.
+ */
+export interface IPlayerSaveAsJson {
+  header?: ISaveAsJsonHeader,
+  properties?: ISaveAsPlayerJsonProperties,
+  trailer?: ISaveAsJsonTrailer,
+}

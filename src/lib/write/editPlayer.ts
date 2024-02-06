@@ -1,5 +1,5 @@
 import { IChangelogEntry, IPaverConfigPlayerChanges } from "../../types/Paver";
-import { ISaveAsJsonPalPlayerKeyValuePair } from "../../types/SaveAsJson";
+import { IPlayerSaveAsJson, ISaveAsJsonPalPlayerKeyValuePair } from "../../types/SaveAsJson";
 import findInNestedObject from "../findInNestedObject";
 import normalizeGuid from "../normalizeGuid";
 import { getPlayerFieldMapByFile } from "../getFieldMap";
@@ -20,15 +20,24 @@ export const editPlayerInLevelSav = ({
   playerChangesToMake: IPaverConfigPlayerChanges
 }): [ISaveAsJsonPalPlayerKeyValuePair, IChangelogEntry[], string[]] => {
   const modifiedPlayerOrPal = rawPlayerOrPal;
-  let {
-    value: modifiedPlayerJson
-  } = modifiedPlayerOrPal?.value?.RawData?.value?.object?.SaveParameter;
-
   const playerChangelog: IChangelogEntry[] = [];
   const fieldMap = getPlayerFieldMapByFile('Level.sav');
   const normalizedGuid = normalizeGuid(rawPlayerOrPal.key.PlayerUId.value)
   const playerChangeErrors: string[] = [];
   const successfulChangedKeys: string[] = [];
+
+  if (!modifiedPlayerOrPal?.value?.RawData?.value?.object?.SaveParameter) {
+    playerChangeErrors.push(`Unable to find SaveParameter in ${normalizedGuid} player object. This may hint at a corrupted player or save file, or a player that does not actually exist.`);
+    return [
+      modifiedPlayerOrPal,
+      playerChangelog,
+      playerChangeErrors,
+    ];
+  }
+
+  let {
+    value: modifiedPlayerJson
+  } = modifiedPlayerOrPal?.value?.RawData?.value?.object?.SaveParameter;
 
   // Iterate over changes and 
   const recursivelyMakeChanges = (keyName: string, changeValue: any, singleFieldMapEntry) => {
@@ -198,28 +207,35 @@ export const editPlayerInLevelSav = ({
 };
 
 /**
- * 
- * @param playerJson 
- * @param playerChangesToMake 
- * @returns 
+ * Edit a players /Players/<guid>.sav.json file
+ * This is structured a bit differently than the Level.sav.json file.
  */
 export const editPlayerSav = ({
   rawPlayerOrPal,
   playerChangesToMake,
 }: {
-  rawPlayerOrPal: ISaveAsJsonPalPlayerKeyValuePair,
+  rawPlayerOrPal: IPlayerSaveAsJson,
   playerChangesToMake: IPaverConfigPlayerChanges
-}): [ISaveAsJsonPalPlayerKeyValuePair, IChangelogEntry[], string[]] => {
+  }): [IPlayerSaveAsJson, IChangelogEntry[], string[]] => {
   const modifiedPlayerOrPal = rawPlayerOrPal;
-  let {
-    value: modifiedPlayerJson
-  } = modifiedPlayerOrPal?.value?.RawData?.value?.object?.SaveParameter;
-
   const playerChangelog: IChangelogEntry[] = [];
   const fieldMap = getPlayerFieldMapByFile('Player.sav');
-  const normalizedGuid = normalizeGuid(rawPlayerOrPal.key.PlayerUId.value)
+  const normalizedGuid = normalizeGuid(modifiedPlayerOrPal.properties?.SaveData?.value?.PlayerUId?.value)
   const playerChangeErrors: string[] = [];
   const successfulChangedKeys: string[] = [];
+
+  if (!modifiedPlayerOrPal?.properties?.SaveData?.value) {
+    playerChangeErrors.push(`Unable to find SaveParameter in ${normalizedGuid} player object. This may hint at a corrupted player or save file, or a player that does not actually exist.`);
+    return [
+      modifiedPlayerOrPal,
+      playerChangelog,
+      playerChangeErrors,
+    ];
+  }
+
+  let {
+    value: modifiedPlayerJson
+  } = modifiedPlayerOrPal?.properties?.SaveData;
 
   // Iterate over changes and 
   const recursivelyMakeChanges = (keyName: string, changeValue: any, singleFieldMapEntry) => {
@@ -338,7 +354,7 @@ export const editPlayerSav = ({
     recursivelyMakeChanges(key, changeValue, thisFieldMapEntry);
   });
 
-  console.info(`Successfully modified ${successfulChangedKeys.length} changes in Level.sav (${successfulChangedKeys.join(', ').trim()}) for this player.`)
+  console.info(`Successfully modified ${successfulChangedKeys.length} changes in Players/<guid>.sav (${successfulChangedKeys.join(', ').trim()}) for this player.`)
 
   return [
     modifiedPlayerOrPal,
