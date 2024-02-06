@@ -33,9 +33,9 @@ jobs:
         run: |
           cp package.json dist/
           cp yarn.lock dist/
-          cp node_modules dist/ -r
+          cd dist && yarn install --production && cd ..
       - name : Package
-        run: npm run package-all
+        run: yarn package-all
       - name : Prep Release Zip
         shell: bash
         run: |
