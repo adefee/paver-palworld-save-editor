@@ -23,6 +23,8 @@ jobs:
           node-version: '18.x'
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
+      - name: Install packager
+        run: yarn global add pkg
       - name: Install Local Build Dependencies
         run: yarn install
       - name: Build TS -> dist
@@ -31,7 +33,7 @@ jobs:
         run: |
           cp package.json dist/
           cp yarn.lock dist/
-          cd dist && yarn install --production && cd ..
+          cd dist && yarn install && cd ..
       - name : Package
         run: yarn package-all
       - name : Prep Release Zip
@@ -39,16 +41,14 @@ jobs:
         run: |
           cp LICENSE bin/
           cp README.md bin/
-          cp src/helpers bin/ -r
+          cp helpers bin/ -r
           cp config.example.json bin/config.example.json
-          echo '{"gameSaveDirectoryPath": ""}' > bin/config.json
           cd bin
           zip -r ./paver-${{steps.ghd.outputs.describe}}-all.zip *
       - uses: actions/upload-artifact@v4
         with:
           name: bin
           path: bin/
-
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
