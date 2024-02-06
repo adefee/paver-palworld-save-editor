@@ -23,8 +23,6 @@ jobs:
           node-version: '18.x'
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
-      - name: Install Packager
-        run: yarn global add pkg
       - name: Install Local Build Dependencies
         run: yarn install
       - name: Build TS -> dist

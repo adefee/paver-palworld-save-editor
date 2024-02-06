@@ -37,6 +37,7 @@
     "@types/stream-chain": "^2.0.4",
     "@types/stream-json": "^1.7.7",
     "concurrently": "^8.2.2",
+    "nexe": "^4.0.0-rc.4",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

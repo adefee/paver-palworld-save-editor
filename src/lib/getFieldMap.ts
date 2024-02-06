@@ -187,7 +187,7 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             validate: (val) => Number.isInteger(val) && val >= 0,
             validationError: 'statusPoints.weight should be an integer greater than 0.',
           },
-          catchRate: {
+          captureRate: {
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
