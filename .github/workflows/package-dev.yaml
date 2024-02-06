@@ -32,11 +32,12 @@ jobs:
       - name: Copy files into dist
         run: |
           cp package.json dist/
-          cp yarn-lock.json dist/
+          cp yarn.lock dist/
           cp node_modules dist/ -r
       - name : Package
         run: npm run package-all
-      - shell: bash
+      - name : Prep Release Zip
+        shell: bash
         run: |
           cp LICENSE bin/
           cp README.md bin/
