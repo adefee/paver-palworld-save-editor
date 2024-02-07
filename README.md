@@ -37,7 +37,7 @@ This project is in early development. I've tried to make it user-friendly and sa
 ## Getting Started: Run Paver!
 1) **Install any necessary prerequisites (see above).**
 
-2) **Download the latest release from from [Releases](https://github.com/adefee/palworld-save-editor/releases/latest).** For most users, you'll want to grab `paver-win.exe`. You may also find the other files helpful, or the zip file that includes all assets in the release, if you prefer.
+2) **Download the latest release from from [Releases](https://github.com/adefee/palworld-save-editor/releases/latest).** For most users, you'll want to grab the zip file, which includes an exe and some helper files. Once downloaded, extract the zip file to a location of your choice.
 
 3) Create a config file, or run Paver once to create one for you. The config file is a JSON file that tells Paver what to do. Later, we might have a nice UI to do this for you - but in the meantime, here's a basic example to get you started:
 
