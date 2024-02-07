@@ -23,10 +23,14 @@ jobs:
           node-version: '18.x'
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
+      - name: Get version from package.json
+        id: package_version
+        run: echo "::set-output name=VERSION::$(node -p "require('./package.json').version")"
+        shell: bash
       - name : Prep Release Zip
         shell: bash
         run: |
-          mv paver-${{steps.ghd.outputs.describe}}.zip bin/
+          mv paver-${{ steps.package_version.outputs.VERSION }}.zip bin/paver-${{ steps.ghd.outputs.describe }}.zip
           cp LICENSE bin/
           cp README.md bin/
           cp helpers bin/ -r
