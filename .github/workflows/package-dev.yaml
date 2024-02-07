@@ -38,7 +38,7 @@ jobs:
           cp config.example.json bin/config.example.json
       - uses: actions/upload-artifact@v4
         with:
-          name: bin
+          name: paver-${{ steps.package_version.outputs.VERSION }}
           path: bin/
       - name: Release
         uses: softprops/action-gh-release@v1
