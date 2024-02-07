@@ -148,3 +148,5 @@ index-out.js
 sea-prep.blob
 paver.exe
 paver-build.js
+# Not ideal, but for now, including the paver-*.zip release bundles
+!paver-*.zip

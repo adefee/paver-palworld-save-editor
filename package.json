@@ -16,11 +16,13 @@
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=paver-build.js",
     "package:1": "node --experimental-sea-config sea-config.json",
-    "package:2-nix": "cp $(command -v node) paver",
-    "package:2-windows": "node -e \"require('fs').copyFileSync(process.execPath, 'paver.exe')\"",
-    "package:3-osx": "codesign --remove-signature paver",
-    "package:3-windows": "signtool remove /s paver.exe",
-    "package:sign-windows": "signtool sign /fd SHA512 paver.exe",
+    "package:2": "node -e \"require('fs').copyFileSync(process.execPath, 'paver.exe')\"",
+    "package:3": "signtool remove /s paver.exe",
+    "package:4": "powershell .\\package-windows.ps1",
+    "package:5": "signtool sign /fd SHA512 paver.exe",
+    "package:6": "node zip-dist.js",
+    "package:run": "echo Starting package... && yarn package:1 && yarn package:2 && yarn package:4 && yarn package:6 && echo Packaging should be completed!",
+    "release": "yarn build && yarn package:run",
     "dev": "npx tsc && node ./dist/index.js",
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -31,6 +33,7 @@
   "dependencies": {
     "JSONStream": "^1.3.5",
     "adm-zip": "^0.5.10",
+    "archiver": "^6.0.1",
     "axios": "^1.6.7"
   },
   "devDependencies": {

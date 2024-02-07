@@ -1,10 +1,10 @@
-name: Package and Release
+name: Build & Package Dev, Cut Pre-Release
 on:
   push:
     branches: 
-      - main
+      - development
     tags:
-      # Only run workflow on pure-semantic tags for now.
+      # Only run workflow on tags with the format x.y.z-dev
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   package:
@@ -23,41 +23,25 @@ jobs:
           node-version: '18.x'
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
-      - name: Install Packager
-        run: yarn install -g pkg
-      - name: Install Local Build Dependencies
-        run: yarn install
-      - name: Build TS -> dist
-        run: yarn build
-      - name: Copy files into dist
+      - name : Prep Release Zip
+        shell: bash
         run: |
-          cp package.json dist/
-          cp yarn-lock.json dist/
-          cp node_modules dist/ -r
-      - name : Package
-        run: npm run package-all
-      - shell: bash
-        run: |
+          mv paver-${{steps.ghd.outputs.describe}}.zip bin/
           cp LICENSE bin/
           cp README.md bin/
-          cp src/helpers bin/ -r
+          cp helpers bin/ -r
           cp config.example.json bin/config.example.json
-          echo '{"gameSaveDirectoryPath": ""}' > bin/config.json
-          cd bin
-          zip -r ./paver-${{steps.ghd.outputs.describe}}-all.zip *
       - uses: actions/upload-artifact@v4
         with:
           name: bin
           path: bin/
-
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-${{steps.ghd.outputs.describe}}-all.zip
+            bin/paver-${{steps.ghd.outputs.describe}}.zip
             bin/config.example.json
-            bin/config.json
             bin/helpers
             LICENSE
             README.md

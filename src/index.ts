@@ -636,15 +636,21 @@ const saveEditorMain = async () => {
         
         // If we have a charsave map, we'll need to update the Level.sav.json with the new data.
         if (!isMissingCharSaveMap) {
-          const { stdout, stderr } = await execAsync(`python ./helpers/updatePlayersInLevelSav.py "${levelSavJsonPath}" "${internalOutputPath}/CharacterSaveParameterMap" "properties.worldSaveData.value.CharacterSaveParameterMap.value"`);
-          console.log(stdout);
-          if (stderr) {
-            isErrorsInConvertion = true;
-            console.error(`Err: ${stderr}`);
+
+          if (!fs.existsSync('./helpers/updatePlayersInLevelSav.py')) {
+            criticalErrors.push('Unable to find `helpers/updatePlayersInLevelSav.py` - please make sure the `helpers` directory exists in the same place as Paver and contains this file!')
+          } else {
+            const { stdout, stderr } = await execAsync(`python ./helpers/updatePlayersInLevelSav.py "${levelSavJsonPath}" "${internalOutputPath}/CharacterSaveParameterMap" "properties.worldSaveData.value.CharacterSaveParameterMap.value"`);
+            console.log(stdout);
+            if (stderr || stdout.includes('Error: Command failed')) {
+              isErrorsInConvertion = true;
+              console.error(`${stderr}`);
+              criticalErrors.push(`Error executing ./helpers/updatePlayersInLevelSav.py: ${stderr}`);
+            }
           }
         }
 
-        if (!isErrorsInConvertion || criticalErrors.length < 1) {
+        if (!isErrorsInConvertion && criticalErrors.length < 1) {
           console.info('Removing old Level.sav before generating new one...')
           if (fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav`)) {
             deleteFileSync(`${targetGameSaveDirectoryPath}/Level.sav`);
@@ -658,118 +664,122 @@ const saveEditorMain = async () => {
 
       } catch (err) {
         console.error(`Caught Err: ${err}`);
+        criticalErrors.push('Errors encountered when converting Level.sav.json back into Level.sav!');
       }
 
-      console.log('Successfully ingested and modified Level.sav data, which holds the majority of world & player data. Some fields, like player appearance, tech points and recipes, etc are stored in individual player files. Paver will attempt to modify those next, as needed.');
+      // Continue only if we have no critical errors.
+      if (criticalErrors.length < 1) {
+        console.log('Successfully ingested and modified Level.sav data, which holds the majority of world & player data. Some fields, like player appearance, tech points and recipes, etc are stored in individual player files. Paver will attempt to modify those next, as needed.');
 
-      // Now let's modify the Players/<GUID>.json files.
-      // These are small enough for now, we shouldn't need to stream those. They just contain basic player data.
-      if (listOfPlayerSavsToModify.length < 1) {
-        console.info("No changes matching players in your save were requested, so looks like Paver is done here!");
+        // Now let's modify the Players/<GUID>.json files.
+        // These are small enough for now, we shouldn't need to stream those. They just contain basic player data.
+        if (listOfPlayerSavsToModify.length < 1) {
+          console.info("No changes matching players in your save were requested, so looks like Paver is done here!");
 
-        // Note in report.
-        reportData.summary.paver.notes = [
-          ...reportData.summary.paver.notes || [],
-          'No changes matching players in your save were found. If you added changes to your config, make sure you are providing a Handle or GUID that matches a player in your save.'
-        ]
-      }
+          // Note in report.
+          reportData.summary.paver.notes = [
+            ...reportData.summary.paver.notes || [],
+            'No changes matching players in your save were found. If you added changes to your config, make sure you are providing a Handle or GUID that matches a player in your save.'
+          ]
+        }
 
-      for (const playerToModify of listOfPlayerSavsToModify) {
-        const targetPlayerPathSav = `${targetGameSaveDirectoryPath}/Players/${normalizeGuid(playerToModify.guid)}.sav`;
-        const targetPlayerPathJson = `${targetPlayerPathSav}.json`;
-        const errorsWithThisPlayer: string[] = [];
+        for (const playerToModify of listOfPlayerSavsToModify) {
+          const targetPlayerPathSav = `${targetGameSaveDirectoryPath}/Players/${normalizeGuid(playerToModify.guid)}.sav`;
+          const targetPlayerPathJson = `${targetPlayerPathSav}.json`;
+          const errorsWithThisPlayer: string[] = [];
 
-        if (fs.existsSync(targetPlayerPathSav)) {
+          if (fs.existsSync(targetPlayerPathSav)) {
 
-          if (!appConfig?.skipConversion) {
-            // Convert the player SAV to JSON
+            if (!appConfig?.skipConversion) {
+              // Convert the player SAV to JSON
 
-            if (fs.existsSync(targetPlayerPathJson)) {
-              deleteFileSync(targetPlayerPathJson);
+              if (fs.existsSync(targetPlayerPathJson)) {
+                deleteFileSync(targetPlayerPathJson);
+              }
+
+              const [
+                isPlayerSavConverted,
+                playerSavConversionErrors
+              ] = await convertSavAndJson(
+                saveToolsInstallPath,
+                targetPlayerPathSav,
+                `Player Save for ${playerToModify.handle}`
+              );
+
+              if (isPlayerSavConverted) {
+                console.info(successfulConversion);
+              } else {
+                errorsWithThisPlayer.push(`Unable to convert ${playerToModify.handle}'s SAV to JSON: ${playerSavConversionErrors.join(', ').trim()}`);
+              }
             }
 
-            const [
-              isPlayerSavConverted,
-              playerSavConversionErrors
-            ] = await convertSavAndJson(
-              saveToolsInstallPath,
-              targetPlayerPathSav,
-              `Player Save for ${playerToModify.handle}`
-            );
+            // If no errors, we should now have a JSON file (or we already had one).
+            const doesPlayerSaveJsonExist = fs.existsSync(targetPlayerPathJson);
+            if (errorsWithThisPlayer.length < 1 && doesPlayerSaveJsonExist) {
+              const rawPlayerSavData = JSON.parse(fs.readFileSync(targetPlayerPathJson, 'utf8'));
 
-            if (isPlayerSavConverted) {
-              console.info(successfulConversion);
-            } else {
-              errorsWithThisPlayer.push(`Unable to convert ${playerToModify.handle}'s SAV to JSON: ${playerSavConversionErrors.join(', ').trim()}`);
-            }
-          }
+              const [
+                modifiedPlayerJson,
+                changelogForThisPlayer,
+                changeErrorsForThisPlayer,
+              ] = editPlayerSav({
+                rawPlayerOrPal: rawPlayerSavData,
+                playerChangesToMake: playerToModify.changesToMake,
+              });
 
-          // If no errors, we should now have a JSON file (or we already had one).
-          const doesPlayerSaveJsonExist = fs.existsSync(targetPlayerPathJson);
-          if (errorsWithThisPlayer.length < 1 && doesPlayerSaveJsonExist) {
-            const rawPlayerSavData = JSON.parse(fs.readFileSync(targetPlayerPathJson, 'utf8'));
+              if (changeErrorsForThisPlayer.length > 0) {
+                warnings = [
+                  ...warnings,
+                  ...changeErrorsForThisPlayer
+                ]
+              }
 
-            const [
-              modifiedPlayerJson,
-              changelogForThisPlayer,
-              changeErrorsForThisPlayer,
-            ] = editPlayerSav({
-              rawPlayerOrPal: rawPlayerSavData,
-              playerChangesToMake: playerToModify.changesToMake,
-            });
-
-            if (changeErrorsForThisPlayer.length > 0) {
-              warnings = [
-                ...warnings,
-                ...changeErrorsForThisPlayer
+              changelog = [
+                ...changelogForThisPlayer,
               ]
+
+              // Update report
+              reportData.playerData[playerToModify.guid] = {
+                ...reportData.playerData[playerToModify.guid],
+                didPaverAttemptPlayerSavChanges: true,
+                ...modifiedPlayerJson,
+              }
+
+              fs.writeFileSync(
+                targetPlayerPathJson,
+                JSON.stringify(modifiedPlayerJson, null, 2)
+              );
+
+              if (fs.existsSync(`${targetPlayerPathSav}`)) {
+                deleteFileSync(`${targetPlayerPathSav}`);
+              }
+
+              // Convert back to SAV
+              const [
+                isPlayerSavReConverted,
+                playerSavReConversionErrors
+              ] = await convertSavAndJson(
+                saveToolsInstallPath,
+                targetPlayerPathJson,
+                `Player Save for ${playerToModify.handle}`
+              );
+
+              if (isPlayerSavReConverted) {
+                console.info(`Player sav now converted back into SAV.`);
+              } else {
+                errorsWithThisPlayer.push(`Unable to convert ${playerToModify.handle}'s JSON back to SAV: ${playerSavReConversionErrors.join(', ').trim()}`);
+              }
+            } else if (!doesPlayerSaveJsonExist) {
+              warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". This may indicate an issue with the player's SAV file or conversion into JSON (see the logs above for clues). Paver needs this JSON to make some player changes, so things like appearance, tech points, etc will not be made for this player.`);
             }
 
-            changelog = [
-              ...changelogForThisPlayer,
-            ]
 
-            // Update report
-            reportData.playerData[playerToModify.guid] = {
-              ...reportData.playerData[playerToModify.guid],
-              didPaverAttemptPlayerSavChanges: true,
-              ...modifiedPlayerJson,
-            }
-
-            fs.writeFileSync(
-              targetPlayerPathJson,
-              JSON.stringify(modifiedPlayerJson, null, 2)
-            );
-
-            if (fs.existsSync(`${targetPlayerPathSav}`)) {
-              deleteFileSync(`${targetPlayerPathSav}`);
-            }
-
-            // Convert back to SAV
-            const [
-              isPlayerSavReConverted,
-              playerSavReConversionErrors
-            ] = await convertSavAndJson(
-              saveToolsInstallPath,
-              targetPlayerPathJson,
-              `Player Save for ${playerToModify.handle}`
-            );
-
-            if (isPlayerSavReConverted) {
-              console.info(`Player sav now converted back into SAV.`);
-            } else {
-              errorsWithThisPlayer.push(`Unable to convert ${playerToModify.handle}'s JSON back to SAV: ${playerSavReConversionErrors.join(', ').trim()}`);
-            }
-          } else if (!doesPlayerSaveJsonExist) {
-            warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". This may indicate an issue with the player's SAV file or conversion into JSON (see the logs above for clues). Paver needs this JSON to make some player changes, so things like appearance, tech points, etc will not be made for this player.`);
-          }
-
-          
-        } else {
-          if (appConfig?.skipConversion) {
-            warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". You opted to skip conversion, so Paver will not attempt to convert their SAV and some changes, like appearance and tech points, will not be made.`);
           } else {
-            warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPathJson}.`);
+            if (appConfig?.skipConversion) {
+              warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". You opted to skip conversion, so Paver will not attempt to convert their SAV and some changes, like appearance and tech points, will not be made.`);
+            } else {
+              warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPathJson}.`);
+            }
           }
         }
       }
@@ -778,7 +788,7 @@ const saveEditorMain = async () => {
       criticalErrors.push('Level.sav.json ingestion pipeline failed: ' + `${error}`);
       console.error('Level.sav.json ingestion pipeline failed:', error);
     }
-  } else if (!levelSavJsonPath) {
+  } else if (!levelSavJsonPath && criticalErrors.length < 1) {
     criticalErrors.push('Unable to find or convert Level.sav.json. Paver requires a Level.sav.json file to report or affect most changes.');
   }
 
@@ -787,7 +797,7 @@ const saveEditorMain = async () => {
 
   // Attempt to export our report
   if (appConfig?.reporting?.export !== false) {
-    let reportExportPath = `./reports/${runtimeStamp}${criticalErrors.length > 0 ? '-failed' : ''}.json`;
+    let reportExportPath = `./paver-reports/${runtimeStamp}${criticalErrors.length > 0 ? '-failed' : ''}.json`;
     try {
       console.info("Exporting report as JSON...")
 
@@ -823,7 +833,7 @@ const saveEditorMain = async () => {
 
   // If we have any critical errors, we'll display those to the user
   if (criticalErrors.length > 0) {
-    console.error('Paver has encountered critical errors and cannot continue. Please address the following issues and try again:');
+    console.error('Paver has encountered critical errors and cannot continue. Please address the following issues and try again. The logs above likely contain more context. If you submit a bug report, please try to include the above logs, too.');
     console.error(criticalErrors);
   } else {
     console.info("FYI: No critical errors encountered in this run.")
@@ -834,7 +844,7 @@ const saveEditorMain = async () => {
     console.warn('There are a few things that may be of note or useful to you. Please review the following and address as needed:');
     console.warn(warnings);
   } else {
-    console.info("FYI: No warnings noted in this run.")
+    console.info("FYI: No additional warnings noted in this run.")
   }
 
   console.info('');

@@ -5,7 +5,7 @@ on:
       - development
     tags:
       # Only run workflow on tags with the format x.y.z-dev
-      - 'v[0-9]+.[0-9]+.[0-9]+-dev'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   package:
     permissions:
@@ -23,29 +23,14 @@ jobs:
           node-version: '18.x'
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
-      - name: Install packager
-        run: yarn global add pkg
-      - name: Install Local Build Dependencies
-        run: yarn install
-      - name: Build TS -> dist
-        run: yarn build
-      - name : Package
-        run: |
-          yarn package:1
-          yarn package:2-nix
-          npx postject paver NODE_SEA_BLOB sea-prep.blob \
-            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 
       - name : Prep Release Zip
         shell: bash
         run: |
-          cp paver.exe bin/
-          cp paver.webp bin/
+          mv paver-${{steps.ghd.outputs.describe}}.zip bin/
           cp LICENSE bin/
           cp README.md bin/
           cp helpers bin/ -r
           cp config.example.json bin/config.example.json
-          cd bin
-          zip -r ./paver-${{steps.ghd.outputs.describe}}-bundled.zip *
       - uses: actions/upload-artifact@v4
         with:
           name: bin
@@ -55,11 +40,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-${{steps.ghd.outputs.describe}}-bundled.zip
-            bin/paver.exe
+            bin/paver-${{steps.ghd.outputs.describe}}.zip
             bin/config.example.json
             bin/helpers
             LICENSE
             README.md
           generate_release_notes: true
-          prerelease: true
