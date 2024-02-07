@@ -2,9 +2,9 @@ name: Build & Package Dev, Cut Pre-Release
 on:
   push:
     branches: 
-      - development
-    tags:
-      # Only run workflow on tags with the format x.y.z-dev
+      - main
+    tags: 
+      # Only run workflow on tags with the format vx.y.z
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   package:
