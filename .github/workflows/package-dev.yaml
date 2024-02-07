@@ -1,0 +1,51 @@
+name: Build & Package Dev, Cut Pre-Release
+on:
+  push:
+    branches: 
+      - development
+jobs:
+  package:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Git describe
+        id: ghd
+        uses: proudust/gh-describe@v1
+      # Configure to pull internal Packages, then Yarn Install
+      - name: Setup NodeJS for NPMJS Build Step 
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Get version from package.json
+        id: package_version
+        run: echo "::set-output name=VERSION::$(node -p "require('./package.json').version")"
+        shell: bash
+      - name : Prep Release Zip
+        shell: bash
+        run: |
+          mkdir bin
+          cp LICENSE bin/
+          mv paver-v${{ steps.package_version.outputs.VERSION }}.zip bin/
+          cp README.md bin/
+          cp helpers bin/ -r
+          cp config.example.json bin/config.example.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paver-v${{ steps.package_version.outputs.VERSION }}
+          path: bin/
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            bin/paver-v${{ steps.package_version.outputs.VERSION }}.zip
+            bin/config.example.json
+            bin/helpers
+            LICENSE
+            README.md
+          generate_release_notes: true
+          prerelease: true

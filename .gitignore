@@ -138,3 +138,18 @@ reports/
 reports/*
 report/
 report/*
+build/
+build/*
+datastore/
+datastore/*
+helpers/updatePlayersInLevelSav.exe
+helpers/cheahjs-save-tools/
+helpers/cheahjs-save-tools/*
+
+# Output of pre-build/packaging
+index-out.js
+sea-prep.blob
+paver.exe
+paver-build.js
+# Not ideal, but for now, including the paver-*.zip release bundles
+!paver-*.zip

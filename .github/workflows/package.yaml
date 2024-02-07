@@ -1,10 +1,10 @@
-name: Package and Release
+name: Build & Package Dev, Cut Pre-Release
 on:
   push:
     branches: 
       - main
-    tags:
-      # Only run workflow on pure-semantic tags for now.
+    tags: 
+      # Only run workflow on tags with the format vx.y.z
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   package:
@@ -21,36 +21,33 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
-      - name: Install Packager
-        run: npm install -g pkg
-      - name: Install Local Build Dependencies
-        run: npm install
-      - name : Build
-        run: npm run package-all
-      - shell: bash
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Get version from package.json
+        id: package_version
+        run: echo "::set-output name=VERSION::$(node -p "require('./package.json').version")"
+        shell: bash
+      - name : Prep Release Zip
+        shell: bash
         run: |
+          mkdir bin
           cp LICENSE bin/
+          mv paver-v${{ steps.package_version.outputs.VERSION }}.zip bin/
           cp README.md bin/
+          cp helpers bin/ -r
           cp config.example.json bin/config.example.json
-          echo '{"gameSaveDirectoryPath": ""}' > bin/config.json
-          cd bin
-          zip -r ./paver-${{steps.ghd.outputs.describe}}-all.zip *
       - uses: actions/upload-artifact@v4
         with:
-          name: bin
+          name: paver-v${{ steps.package_version.outputs.VERSION }}
           path: bin/
-
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-win.exe
-            bin/paver-linux
-            bin/paver-macos
-            bin/paver-${{steps.ghd.outputs.describe}}-all.zip
+            bin/paver-v${{ steps.package_version.outputs.VERSION }}.zip
             bin/config.example.json
-            bin/config.json
+            bin/helpers
             LICENSE
             README.md
           generate_release_notes: true
