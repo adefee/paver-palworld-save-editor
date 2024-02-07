@@ -1,7 +1,7 @@
 # **Paver**: A Palworld Save Editor
-A comprehensive and extensible save editor and reporting tool for Palworld, intended to work with any version of Palworld v0.1.4.0 and above. Point it to your save directory (where your Level.sav is) and go!
+A comprehensive and extensible save editor and reporting tool for Palworld, intended to work with any version of Palworld v0.1.2.0 and above. Point it to your save directory (where your Level.sav is) and go!
 
-This project is in early development (in fact, in its first release). I've tried to make it user-friendly and safety-first (don't write changes if anything goes wrong), but **I'll always recommend making a backup of your save before using this tool.**
+This project is in early development. I've tried to make it user-friendly and safety-first (don't write changes if anything goes wrong), but **I'll always recommend making a backup of your save before using this tool.**
 
 > Questions? Bugs? Ideas? [Join the Paver Discord](https://discord.gg/tu2rnEBWn9)
 
@@ -30,14 +30,16 @@ This project is in early development (in fact, in its first release). I've tried
     - Windows users: You can install [Python 3.12 from the Microsoft Store](https://apps.microsoft.com/detail/9NCVDN91XZQP) or from [python.org](https://www.python.org/)
     - See the [palworld-save-tools README](https://github.com/cheahjs/palworld-save-tools) for updates and more information.
 
-## First Time Run
+2. The `ijson` module for Python is required for the save conversion process, but **Paver will attempt to install it for you** if you don't already have it.
+    - *This is not needed if your save files are already in JSON format.*
+    - If you see errors about `ijson`, or see an error related to `helpers/updatePlayersInLevelSav.py`, you can workaround this by installing `ijson` yourself. Just open command prompt, type "pip install ijson", and hit enter. Then restart Paver and you should be good!
+
+## Getting Started: Run Paver!
 1) **Install any necessary prerequisites (see above).**
 
 2) **Download the latest release from from [Releases](https://github.com/adefee/palworld-save-editor/releases/latest).** For most users, you'll want to grab `paver-win.exe`. You may also find the other files helpful, or the zip file that includes all assets in the release, if you prefer.
 
-   > Note: I normally run from source, so I have only tested the Windows build. **I build for Linux and OSX, too, but I haven't tested them.**
-
-3) Setup your config file. Create a file in the same directory where you downloaded the release, and name it `config.json`. The contents of the file should look something like this:
+3) Create a config file, or run Paver once to create one for you. The config file is a JSON file that tells Paver what to do. Later, we might have a nice UI to do this for you - but in the meantime, here's a basic example to get you started:
 
 ```json
 {
@@ -49,11 +51,11 @@ This project is in early development (in fact, in its first release). I've tried
 
   - All other fields are optional. You can see a full list of options in [Config Options](#config-options). Reporting, changelogs, and guardrails (help make sure you don't set something wrong) are **enabled by default**.
 
-    > Advanced: Add the -c flag to the command to specify a different config file location or name. For example, `paver -c ./my-config.json``.
+    > Advanced: Add the config flag to the command to specify a different config file location or name. For example, `paver config=./my-config.json``.
 
-4) Run the executable you downloaded. It will pick up your `config.json` file and start working based on what you've added. Check out the [Examples](#config-examples) to see some common use cases.
+4) Run the executable you downloaded. It will pick up your config file and start working based on what you've added. Check out the [Examples](#config-examples) to see some common use cases.
 
-## Running from Source
+## Advanced: Running from Source
 If you want to run Paver as a Node app, feel free! You'll need to have ateast Node.js installed, and then you can run the following commands to get started:
 
 ```bash
@@ -153,23 +155,18 @@ Below is a list of all currently available options for the `config.json` file. A
 ```json
 {
   "gameSaveDirectoryPath": "C:\\path\\to\\your\\save\\directory",
-  "savToJsonConversion": {
-    "enable": true,
-    "repoUrl": "https://github.com/cheahjs/palworld-save-tools.git",
-    "relativeInstallPath": "./palworld-save-tools-cheahjs",
-    "convertFreshEveryRun": true,
-    "cleanUpJsonAfterConversion": true
-  },
-  "removeAttribution": false,
+  "skipSavJsonConversion": false,
+  "cheahJsToolsInstallPath": "./helpers/cheahjs-save-tools",
+  "cheahJsToolsVersion": "0.18.0",
+  "cheahJsToolsDownloadUrl": "https://github.com/cheahjs/palworld-save-tools/releases/download/v0.18.0/palworld-save-tools-windows-v0.18.0.zip",
+  "useCustomDataStorePath": false,
+  "cleanUpDataStore": true,
   "reporting": {
     "export": true,
     "exportPath": "./reports",
     "showSummary": true,
     "showCapturedPals": true,
     "showPlayerData": true,
-    "showPlayerUnlockedRecipes": true,
-    "showPlayerAppearance": true,
-    "showChangesMade": true
   },
   "changesToMake": {
     "enableGuardrails": true,
@@ -193,7 +190,7 @@ Below is a list of all currently available options for the `config.json` file. A
         "unlockedFastTravels": [
           "soon - fast travels will be added here soon!"
         ],
-        "relicsInPossession": 0,
+        "countEffigiesFound": 0,
         "currentHp": 50000,
         "maxHp": 50000,
         "maxSp": 50000,
@@ -233,7 +230,7 @@ Below is a list of all currently available options for the `config.json` file. A
 ```
 
 ### Options Rundown
-Adding this ASAP - it's late and I'm sleepy.
+Deeper details on each option and what it does will be added here soon.
 
 
 ## Planned Improvements & Features

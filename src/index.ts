@@ -211,12 +211,12 @@ const saveEditorMain = async () => {
         const doesLevelSavJsonExist = fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav.json`);
 
         /**
-         * Just do some condition handling for cases where we don't have a Level.sav.json file, have skipConversion set, etc etc.
+         * Just do some condition handling for cases where we don't have a Level.sav.json file, have skipSavJsonConversion set, etc etc.
          */
         if (!doesLevelSavExist && !doesLevelSavJsonExist) {
           criticalErrors.push('Unable to find a Level.sav or Level.sav.json file in the `gameSaveDirectoryPath` you provided! Paver currently requires a Level.sav (or pre-converted Level.sav.json) to work.');
         } else if (skipSavJsonConversion && !doesLevelSavJsonExist) {
-          criticalErrors.push('You have set `skipSavJsonConversion` to true, but no Level.sav.json file was found in your game save directory. Please set `savToJsonConversion.skipConversion` to false in your config.json file, or ensure that a Level.sav.json file exists in your game save directory.');
+          criticalErrors.push('You have set `skipSavJsonConversion` to true, but no Level.sav.json file was found in your game save directory. Please set `skipSavJsonConversion` to false in your config.json file, or ensure that a Level.sav.json file exists in your game save directory.');
         } else if (!skipSavJsonConversion && !doesLevelSavExist) {
           if (doesLevelSavJsonExist) {
             criticalErrors.push('No Level.sav file was found in your game save directory, but Paver did find a Level.sav.json file. Please ensure that a Level.sav file exists in your game save directory, or add `skipSavJsonConversion: true` to your config if you want Paver to use the Level.sav.json instead.');
@@ -699,7 +699,7 @@ const saveEditorMain = async () => {
 
           if (fs.existsSync(targetPlayerPathSav)) {
 
-            if (!appConfig?.skipConversion) {
+            if (!appConfig?.skipSavJsonConversion) {
               // Convert the player SAV to JSON
 
               if (fs.existsSync(targetPlayerPathJson)) {
@@ -784,7 +784,7 @@ const saveEditorMain = async () => {
 
 
           } else {
-            if (appConfig?.skipConversion) {
+            if (appConfig?.skipSavJsonConversion) {
               warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". You opted to skip conversion, so Paver will not attempt to convert their SAV and some changes, like appearance and tech points, will not be made.`);
             } else {
               warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPathJson}.`);
