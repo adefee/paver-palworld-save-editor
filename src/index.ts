@@ -640,12 +640,19 @@ const saveEditorMain = async () => {
           if (!fs.existsSync('./helpers/updatePlayersInLevelSav.py')) {
             criticalErrors.push('Unable to find `helpers/updatePlayersInLevelSav.py` - please make sure the `helpers` directory exists in the same place as Paver and contains this file!')
           } else {
-            const { stdout, stderr } = await execAsync(`pip install ijson && python ./helpers/updatePlayersInLevelSav.py "${levelSavJsonPath}" "${internalOutputPath}/CharacterSaveParameterMap" "properties.worldSaveData.value.CharacterSaveParameterMap.value"`);
-            console.log(stdout);
-            if (stderr || stdout.includes('Error: Command failed')) {
+            const { stdout: initialStdOut, stderr: initialStdErr } = await execAsync(`pip install ijson`);
+            if (initialStdErr || initialStdOut.includes('Error: Command failed')) {
               isErrorsInConvertion = true;
-              console.error(`${stderr}`);
-              criticalErrors.push(`Error executing ./helpers/updatePlayersInLevelSav.py: ${stderr}`);
+              console.error(`${initialStdErr}`);
+              criticalErrors.push(`Error executing ijson pip install: ${initialStdErr}`);
+            } else {
+              const { stdout, stderr } = await execAsync(`pip install ijson && python ./helpers/updatePlayersInLevelSav.py "${levelSavJsonPath}" "${internalOutputPath}/CharacterSaveParameterMap" "properties.worldSaveData.value.CharacterSaveParameterMap.value"`);
+              console.log(stdout);
+              if (stderr || stdout.includes('Error: Command failed')) {
+                isErrorsInConvertion = true;
+                console.error(`${stderr}`);
+                criticalErrors.push(`Error executing ./helpers/updatePlayersInLevelSav.py: ${stderr}`);
+              }
             }
           }
         }
