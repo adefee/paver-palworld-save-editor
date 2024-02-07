@@ -1,4 +1,4 @@
-name: Build & Package Dev, Cut Pre-Release
+name: Build & Package Main, Release on Tag
 on:
   push:
     branches: 
