@@ -30,7 +30,7 @@ jobs:
       - name : Prep Release Zip
         shell: bash
         run: |
-          mv paver-${{ steps.package_version.outputs.VERSION }}.zip bin/paver-${{ steps.ghd.outputs.describe }}.zip
+          mv paver-${{ steps.package_version.outputs.VERSION }}.zip bin/
           cp LICENSE bin/
           cp README.md bin/
           cp helpers bin/ -r
@@ -44,7 +44,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-${{steps.ghd.outputs.describe}}.zip
+            bin/paver-${{ steps.package_version.outputs.VERSION }}.zip
             bin/config.example.json
             bin/helpers
             LICENSE
