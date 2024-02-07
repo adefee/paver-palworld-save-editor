@@ -46,3 +46,4 @@ jobs:
             LICENSE
             README.md
           generate_release_notes: true
+          prerelease: true
