@@ -10,35 +10,66 @@ const pipelineAsync = promisify(pipeline);
 
 // Require necessary libs
 import filenameCompatibleTimestamp from './lib/filenameCompatibleTimestamp';
-import writeJsonFile from './lib/writeJsonFile';
 
 const attributeToCheahJs = 'Thanks much, @cheajs!';
 const successfulConversion = `${attributeToCheahJs} Looks like conversion was successful.`;
 
-
 import JSONStream from 'JSONStream';
-import * as Child from 'child_process';
 import { ensureDirectoryExists, ensureFileExists } from './lib/ensureDirectoryExists';
-import { ISaveAsJson, ISaveAsJsonHeader, ISaveAsJsonProperties, ISaveAsJsonTrailer } from './types/SaveAsJson';
+import { ISaveAsJsonProperties } from './types/SaveAsJson';
 import { IChangelogEntry, IPaverConfig } from './types/Paver';
 import normalizeGuid from './lib/normalizeGuid';
 import promptToClose from './lib/promptToClose';
 import { editPlayerInLevelSav, editPlayerSav } from './lib/write/editPlayer';
 import convertSavAndJson from './lib/convertSavAndJson';
-import { skip } from 'node:test';
 import downloadAndExtractCheahJsZip from './lib/downloadAndExtractZip';
 import deleteFileSync from './lib/deleteFileSync';
-
-// var DepthStream = require('json-depth-stream')
-// var zlib = require('zlib')
+import path from 'path';
 
 const saveEditorMain = async () => {
   console.info('Starting Paver Save Editor...');
+  const runtimeStamp = filenameCompatibleTimestamp();
 
   // Track errors, warnings, changelogs
   let criticalErrors = [];
   let warnings = [];
   let changelog: IChangelogEntry[] = [];
+  const reportData: {
+    summary: {
+      paver?: {
+        runtimeStartedAt?: string,
+        runtimeCompletedAt?: string,
+        pythonVersion?: string,
+        [key: string]: any
+      },
+      [key: string]: any
+    },
+    criticalErrors: string[],
+    warnings: string[],
+    changelog: IChangelogEntry[],
+    playerData?: {
+      [key: string]: any,
+    },
+    levelSavMetaData?: any,
+  } = {
+    summary: {
+      "about-summary": "This is just general information about your primary world save, and some aggregate stats. If there's anything else in particular you'd like to see here or throughout the report, please let me know!",
+      "need-help-or-have-questions": "If you need help or have questions, please reach out to me on Discord (https://discord.gg/Zy3h6p7pA9) or open an issue on GitHub. I'm happy to help!",
+      paver: {
+        runtimeStartedAt: runtimeStamp,
+      }
+    },
+    criticalErrors,
+    warnings,
+    changelog,
+    playerData: {
+      "about-playerData": "This is where we'll store some general player data, and any applicable notes/warnings we find over time. If there's anything else in particular you'd like to see here or throughout the report, please let me know!",
+    },
+    levelSavMetaData: {
+      header: null,
+      trailer: null,
+    },
+  }
   let targetGameSaveDirectoryPath = null; // This is the directory where the game's save files (and JSON) should be located
   let levelSavJsonPath = null; // This will be set to the path of the Level.sav.json file, once available
   let isMissingCharSaveMap = false; // If we have no players (e.g. fresh save), avoid player iteration
@@ -57,13 +88,8 @@ const saveEditorMain = async () => {
 
   // Set some other important defaults.
   // Make this configurable in the future.
-  const runtimeStamp = filenameCompatibleTimestamp();
   const internalOutputPath = appConfig?.useCustomDataStorePath || `./datastore/${runtimeStamp}`;
   const levelSavJsonModifiedPath = `${internalOutputPath}/Level.sav.json`;
-
-  // Based on `gameSaveDirectoryPath`, are we able to find any Player sav files?
-  // Some options (like appearance) may not be available if we can't find any player sav files.
-  const arePlayerSaveFilesFound = false; 
 
   // As we stream over level.sav, we will fill this out. This gets used after our level.sav stream when we iterate over individual player sav files in /Players
   const listOfPlayerSavsToModify: {
@@ -89,6 +115,7 @@ const saveEditorMain = async () => {
       criticalErrors.push('Python is not installed or not in your PATH. Paver requires Python to run. Please install Python and ensure it is in your PATH.');
     } else {
       console.info(`Found Python, you should see a version here: ${pythonVersion}`);
+      reportData.summary.pythonVersion = `${pythonVersion || 'N/A'}`.replace("\r\n", "");
     }
   } catch (err) {
     criticalErrors.push(`Critical error encountered when checking for Python installation: Python is required for Paver to work. ${err}`)
@@ -99,6 +126,7 @@ const saveEditorMain = async () => {
     // Check for config.json
     console.info("Checking to make sure a config.json exists...")
     let configLocation = appArguments?.config || './config.json';
+    
 
     if (!fs.existsSync(configLocation)) {
       // File does not exist, so create it
@@ -134,6 +162,8 @@ const saveEditorMain = async () => {
         console.info(`Found a valid config file at "${configLocation}", and it appears to be in working order.`);
       }
     }
+
+    reportData.summary.configLocation = configLocation;
   } catch (err) {
     criticalErrors.push(`Critical error encountered when checking for Python installation: Python is required for Paver to work. ${err}`)
     console.error('Issue when checking to make sure Python is installed!', err);
@@ -145,7 +175,7 @@ const saveEditorMain = async () => {
    * After v0.16 when repo structure was changed, we now fetch from releases (which we should have done to start with). We now default only to locally tested versions of the save tools, in case the releases break things or change structure, etc.
    */
   let saveToolsInstallPath = appConfig?.cheahJsToolsInstallPath || './helpers/cheahjs-save-tools';
-  let latestSupportedSaveToolVersion = appConfig?.cheahJsToolsVersion || '0.17.1';
+  let latestSupportedSaveToolVersion = appConfig?.cheahJsToolsVersion || '0.18.0';
   const latestSupportedSaveToolVersionUrl = appConfig?.cheahJsToolsDownloadUrl || `https://github.com/cheahjs/palworld-save-tools/releases/download/v${latestSupportedSaveToolVersion}/palworld-save-tools-windows-v${latestSupportedSaveToolVersion}.zip`;
 
   /**
@@ -163,7 +193,6 @@ const saveEditorMain = async () => {
     if (!appConfig?.gameSaveDirectoryPath) {
       criticalErrors.push('gameSaveDirectoryPath is not set in your config file. This is the only required field for Paver. Please set this to the path of your game save directory.');
     } else {
-
       try {
         const {
           skipSavJsonConversion = false
@@ -175,6 +204,8 @@ const saveEditorMain = async () => {
         } else {
           console.info(`Found game save directory at "${targetGameSaveDirectoryPath}"`);
         }
+
+        reportData.summary.targetGameDirectory = targetGameSaveDirectoryPath;
 
         const doesLevelSavExist = fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav`);
         const doesLevelSavJsonExist = fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav.json`);
@@ -193,11 +224,16 @@ const saveEditorMain = async () => {
             criticalErrors.push('No Level.sav file was found in your game save directory. Please ensure that a Level.sav file exists in your game save directory.');
           }
         }
-
         // We should now have either a Level.sav.json or a Level.sav file.
         if (criticalErrors.length < 1) {
           if (doesLevelSavJsonExist && skipSavJsonConversion) {
             levelSavJsonPath = `${targetGameSaveDirectoryPath}/Level.sav.json`;
+
+            reportData.summary.conversionSettings = {
+              skipSavJsonConversion,
+              levelSavJsonPath
+            }
+
           } else if (doesLevelSavExist && !skipSavJsonConversion) {
             // We need to convert the Level.sav to JSON
             console.info("Found a Level.sav file in the given directory, prepping to convert.")
@@ -216,8 +252,14 @@ const saveEditorMain = async () => {
             }
 
             if (haveCheahJsTools) {
-              try {
 
+              reportData.summary.conversionSettings = {
+                skipSavJsonConversion,
+                cheahjsSaveToolsUrl: latestSupportedSaveToolVersionUrl,
+                cheahjsSaveToolsInstallPath: saveToolsInstallPath,
+              }
+
+              try {
                 if (fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav.json`)) {
                   deleteFileSync(`${targetGameSaveDirectoryPath}/Level.sav.json`);
                 }
@@ -281,6 +323,10 @@ const saveEditorMain = async () => {
     const { size: levelJsonFilesize } = fs.statSync(levelSavJsonPath);
     const levelJsonFilesizeInMB = levelJsonFilesize / 1024 / 1024;
 
+    // Update report data.
+    reportData.summary.levelSavJsonSizeInMB = levelJsonFilesizeInMB;
+    reportData.summary.levelSavJsonDatastorePath = internalOutputPath;
+
     // Note the datastore & settings to the user.
     console.info(`Setting up a temporary datastore at ${internalOutputPath}. Please do not modify or remove this directory until Paver has finished running.`)
 
@@ -322,6 +368,16 @@ const saveEditorMain = async () => {
             JSON.stringify(levelSaveTopLevel, null, 2)
           );
 
+          reportData.levelSavMetaData.header = {
+            magic: levelSaveTopLevel?.magic,
+            save_game_version: levelSaveTopLevel?.save_game_version,
+            package_file_version: `UE4: ${levelSaveTopLevel?.package_file_version_ue4}, UE5: ${levelSaveTopLevel?.package_file_version_ue5}`,
+            engineVersion: `${levelSaveTopLevel.engine_version_major}.${levelSaveTopLevel.engine_version_minor}.${levelSaveTopLevel.engine_version_path}-${levelSaveTopLevel.engine_version_changelist}-${levelSaveTopLevel.engine_version_branch}`,
+            custom_version_format: levelSaveTopLevel.custom_version_format,
+            save_game_class_name: levelSaveTopLevel.save_game_class_name,
+            custom_versions: 'See header.json in local datastore for more details.'
+          };
+
           // If over 500MB, we'll warn the user that the next step may take some time.
           if (levelJsonFilesizeInMB > 500) {
             const displaySizeinGBOrMb = levelJsonFilesizeInMB >= 1000 ? `${(levelJsonFilesizeInMB / 1000).toFixed(2)} GB` : `${levelJsonFilesizeInMB.toFixed(2)} MB`;
@@ -335,6 +391,7 @@ const saveEditorMain = async () => {
          */
         else if (typeof levelSaveTopLevel === 'string' && levelSaveTopLevel.length === 8) {
           console.log(`Processing trailer ${levelSaveTopLevel}...`);
+          reportData.levelSavMetaData.trailer = `${levelSaveTopLevel}`;
           console.info('Trailer processed.')
         }
         /**
@@ -506,12 +563,27 @@ const saveEditorMain = async () => {
                     ...changelogForThisPlayer,
                   ]
 
+                  // Add to report
+                  reportData.playerData[normalizedGuid] = {
+                    ...(reportData.playerData[normalizedGuid] || {}) as object,
+                    didPaverAttemptLevelSavChanges: true,
+                    ...modifiedPlayerJson.value.RawData.value.object.SaveParameter.value,
+                  }
+
                   fs.writeFileSync(
                     targetPlayerPath,
                     JSON.stringify(modifiedPlayerJson, null, 2)
                   );
                 } else {
                   console.info(`No changes requested for "${thisPlayerRawData?.NickName?.value}" (GUID ${normalizedGuid})"`);
+
+                  // Add to report
+                  reportData.playerData[normalizedGuid] = {
+                    ...(reportData.playerData[normalizedGuid] || {}) as object,
+                    didPaverAttemptLevelSavChanges: false,
+                    ...rawPlayerOrPal.value.RawData.value.object.SaveParameter.value,
+                  }
+
                   // Write back the unmodified player
                   fs.writeFileSync(
                     targetPlayerPath,
@@ -572,7 +644,7 @@ const saveEditorMain = async () => {
           }
         }
 
-        if (!isErrorsInConvertion || criticalErrors.length< 1) {
+        if (!isErrorsInConvertion || criticalErrors.length < 1) {
           console.info('Removing old Level.sav before generating new one...')
           if (fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav`)) {
             deleteFileSync(`${targetGameSaveDirectoryPath}/Level.sav`);
@@ -580,6 +652,8 @@ const saveEditorMain = async () => {
 
           // Now let's call CheahJS's tools to convert into Level.sav
           await convertSavAndJson(saveToolsInstallPath, levelSavJsonPath, 'Level.sav');
+        } else if (isErrorsInConvertion) {
+          criticalErrors.push('Errors encountered when converting Level.sav.json back into Level.sav.');
         }
 
       } catch (err) {
@@ -590,23 +664,28 @@ const saveEditorMain = async () => {
 
       // Now let's modify the Players/<GUID>.json files.
       // These are small enough for now, we shouldn't need to stream those. They just contain basic player data.
+      if (listOfPlayerSavsToModify.length < 1) {
+        console.info("No changes matching players in your save were requested, so looks like Paver is done here!");
+
+        // Note in report.
+        reportData.summary.paver.notes = [
+          ...reportData.summary.paver.notes || [],
+          'No changes matching players in your save were found. If you added changes to your config, make sure you are providing a Handle or GUID that matches a player in your save.'
+        ]
+      }
 
       for (const playerToModify of listOfPlayerSavsToModify) {
         const targetPlayerPathSav = `${targetGameSaveDirectoryPath}/Players/${normalizeGuid(playerToModify.guid)}.sav`;
-        let targetPlayerPath = `${targetGameSaveDirectoryPath}/Players/${normalizeGuid(playerToModify.guid)}.sav`;
+        const targetPlayerPathJson = `${targetPlayerPathSav}.json`;
         const errorsWithThisPlayer: string[] = [];
 
-        if (appConfig?.skipConversion) {
-          targetPlayerPath += '.json';
-        }
-
-        if (fs.existsSync(targetPlayerPath)) {
+        if (fs.existsSync(targetPlayerPathSav)) {
 
           if (!appConfig?.skipConversion) {
             // Convert the player SAV to JSON
 
-            if (fs.existsSync(`${targetPlayerPath}/Level.sav`)) {
-              deleteFileSync(`${targetPlayerPath}/Level.sav`);
+            if (fs.existsSync(targetPlayerPathJson)) {
+              deleteFileSync(targetPlayerPathJson);
             }
 
             const [
@@ -614,21 +693,21 @@ const saveEditorMain = async () => {
               playerSavConversionErrors
             ] = await convertSavAndJson(
               saveToolsInstallPath,
-              targetPlayerPath,
+              targetPlayerPathSav,
               `Player Save for ${playerToModify.handle}`
             );
 
             if (isPlayerSavConverted) {
               console.info(successfulConversion);
-              targetPlayerPath += '.json';
             } else {
               errorsWithThisPlayer.push(`Unable to convert ${playerToModify.handle}'s SAV to JSON: ${playerSavConversionErrors.join(', ').trim()}`);
             }
           }
 
-          // If no errors, we should now have a JSON file.
-          if (errorsWithThisPlayer.length < 1) {
-            const rawPlayerSavData = JSON.parse(fs.readFileSync(targetPlayerPath, 'utf8'));
+          // If no errors, we should now have a JSON file (or we already had one).
+          const doesPlayerSaveJsonExist = fs.existsSync(targetPlayerPathJson);
+          if (errorsWithThisPlayer.length < 1 && doesPlayerSaveJsonExist) {
+            const rawPlayerSavData = JSON.parse(fs.readFileSync(targetPlayerPathJson, 'utf8'));
 
             const [
               modifiedPlayerJson,
@@ -650,8 +729,15 @@ const saveEditorMain = async () => {
               ...changelogForThisPlayer,
             ]
 
+            // Update report
+            reportData.playerData[playerToModify.guid] = {
+              ...reportData.playerData[playerToModify.guid],
+              didPaverAttemptPlayerSavChanges: true,
+              ...modifiedPlayerJson,
+            }
+
             fs.writeFileSync(
-              targetPlayerPath,
+              targetPlayerPathJson,
               JSON.stringify(modifiedPlayerJson, null, 2)
             );
 
@@ -665,7 +751,7 @@ const saveEditorMain = async () => {
               playerSavReConversionErrors
             ] = await convertSavAndJson(
               saveToolsInstallPath,
-              targetPlayerPath,
+              targetPlayerPathJson,
               `Player Save for ${playerToModify.handle}`
             );
 
@@ -674,6 +760,8 @@ const saveEditorMain = async () => {
             } else {
               errorsWithThisPlayer.push(`Unable to convert ${playerToModify.handle}'s JSON back to SAV: ${playerSavReConversionErrors.join(', ').trim()}`);
             }
+          } else if (!doesPlayerSaveJsonExist) {
+            warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". This may indicate an issue with the player's SAV file or conversion into JSON (see the logs above for clues). Paver needs this JSON to make some player changes, so things like appearance, tech points, etc will not be made for this player.`);
           }
 
           
@@ -681,9 +769,8 @@ const saveEditorMain = async () => {
           if (appConfig?.skipConversion) {
             warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". You opted to skip conversion, so Paver will not attempt to convert their SAV and some changes, like appearance and tech points, will not be made.`);
           } else {
-            warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPath}.`);
+            warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPathJson}.`);
           }
-          
         }
       }
 
@@ -695,20 +782,64 @@ const saveEditorMain = async () => {
     criticalErrors.push('Unable to find or convert Level.sav.json. Paver requires a Level.sav.json file to report or affect most changes.');
   }
 
+  // Add generation timestmap to report
+  reportData.summary.paver.runtimeCompletedAt = new Date().toISOString();
 
-  // If we have any critical errors, we'll display those to the user and exit.
+  // Attempt to export our report
+  if (appConfig?.reporting?.export !== false) {
+    let reportExportPath = `./reports/${runtimeStamp}${criticalErrors.length > 0 ? '-failed' : ''}.json`;
+    try {
+      console.info("Exporting report as JSON...")
+
+      if (appConfig?.reporting?.exportPath && appConfig?.reporting?.exportPath?.endsWith('.json')) {
+        console.info("exportPath was given and looks like a filename, so we'll use that.")
+        reportExportPath = appConfig?.reporting?.exportPath;
+      } else if (appConfig?.reporting?.exportPath) {
+        // Treat it as a directory
+        console.info('exportPath was given without a .json extension, so we will treat it as a directory and use a timestamp.json filename.')
+        reportExportPath = `${appConfig?.reporting?.exportPath}/${filenameCompatibleTimestamp()}${criticalErrors.length > 0 ? '-failed' : ''}.json`;
+      }
+
+      const exportReportDir = path.dirname(reportExportPath);
+      fs.mkdirSync(exportReportDir, { recursive: true });
+
+      // Just easier to do this check here than earlier
+      // Exclude player data if we've explicitly declared showPlayerData as false
+      if (appConfig?.reporting?.showPlayerData === false) {
+        reportData.playerData = undefined;
+      }
+
+      fs.writeFileSync(reportExportPath, JSON.stringify(reportData, null, 2), 'utf8');
+      console.log(`Report written written to "${reportExportPath}"`);
+    } catch (err) {
+      criticalErrors.push(`Critical error encountered when exporting report to ${reportExportPath}: ${err}`);
+      console.error(`Error encountered when exporting report to ${reportExportPath}: ${err}`);
+    }
+
+  } else {
+    console.info(`You have "reporting.export: false" set in your config, so Paver will not export a report.`);
+  }
+
+
+  // If we have any critical errors, we'll display those to the user
   if (criticalErrors.length > 0) {
     console.error('Paver has encountered critical errors and cannot continue. Please address the following issues and try again:');
     console.error(criticalErrors);
+  } else {
+    console.info("FYI: No critical errors encountered in this run.")
   }
 
+  // If we have any notable warnings, display those. These are things that may not be critical, but might be helpful for the user to know (e.g. a Player missing a SAV file, etc)
   if (warnings.length > 0) {
     console.warn('There are a few things that may be of note or useful to you. Please review the following and address as needed:');
     console.warn(warnings);
+  } else {
+    console.info("FYI: No warnings noted in this run.")
   }
 
   console.info('');
   console.info('============================');
+  console.info(`Paver started at ${reportData.summary.paver.runtimeStartedAt} and finished at ${reportData.summary.paver.runtimeCompletedAt}`)
   console.info('Paver has finished running.')
   await promptToClose();
 

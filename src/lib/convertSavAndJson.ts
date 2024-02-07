@@ -23,7 +23,7 @@ const convertSavAndJson = async (relativeInstallPath: string, targetPath: string
 
   const fullTargetConversionPath = `${targetPath}${convertTargetType === 'SAV' ? '' : '.json'}`;
 
-  console.info(`Running CheahJS' awesome save-tools to convert to ${convertTargetType} in ${fullTargetConversionPath} (this may take a few moments based on save filesize):`);
+  console.info(`Running CheahJS' awesome save-tools to convert to ${convertTargetType} in ${fullTargetConversionPath} (this may take time based on save filesize):`);
 
   const { stdout, stderr } = await execAsync(`python ${relativeInstallPath}/convert.py ${targetPath}`);
   console.log(stdout);

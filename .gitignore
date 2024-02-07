@@ -142,3 +142,9 @@ datastore/
 datastore/*
 helpers/cheahjs-save-tools/
 helpers/cheahjs-save-tools/*
+
+# Output of pre-build/packaging
+index-out.js
+sea-prep.blob
+paver.exe
+paver-build.js

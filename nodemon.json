@@ -1,8 +1,8 @@
 {
   "watch": [
-    "./src/"
+    "./dist"
   ],
-  "exec": "ts-node ./src/indexStreaming.ts",
+  "exec": "node ./dist/index.js",
   "ignore": [".git", "node_modules", "dist"],
   "ext": "ts"
 }

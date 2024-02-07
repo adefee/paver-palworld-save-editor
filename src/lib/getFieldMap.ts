@@ -19,6 +19,7 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
     subTypeKey?: string,
     subTypeValue?: string,
     findWithFilter?: (val: any) => boolean,
+    paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
   }
 } => {
   let returnValue = {};
@@ -145,6 +146,7 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
           info: "This is the parent property for status point settings. By default, you receive an new `unusedStatusPoint` every level, which can be spent here. These will be added to your base stats (hp, weight, stamina, etc). The ingame default is 0 for all values.",
           followChildren: true, // tell iterator to follow the children keys instead of just this key
           maxHp: {
+            paverId: 'statusPoints.maxHp',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
@@ -155,34 +157,34 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             validationError: 'statusPoints.maxHp should be an integer greater than 0.',
           },
           maxSp: {
+            paverId: 'statusPoints.maxSp',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
             findWithFilter: (spObj) => ['\u6700\u5927SP', '最大SP'].includes(spObj.StatusName.value),
             type: 'IntProperty',
-            notSupported: 'temp',
             info: "This governs how many status points are spent on max Stamina. Each point adds +10 to your max Stamina base value (before other modifiers). Default is 0.",
             validate: (val) => Number.isInteger(val) && val >= 0,
             validationError: 'statusPoints.maxSp should be an integer greater than 0.',
           },
           attack: {
+            paverId: 'statusPoints.attack',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
             findWithFilter: (spObj) => ['\u653b\u6483\u529b', '攻撃力'].includes(spObj.StatusName.value),
             type: 'IntProperty',
-            notSupported: 'temp',
             info: "This governs how many status points are spent on attack ('offensive power'). Each point adds +2 to your attack base value (before other modifiers). Default is 0.",
             validate: (val) => Number.isInteger(val) && val >= 0,
             validationError: 'statusPoints.attack should be an integer greater than 0.',
           },
           weight: {
+            paverId: 'statusPoints.weight',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
             findWithFilter: (spObj) => ['\u6240\u6301\u91cd\u91cf', '所持重量'].includes(spObj.StatusName.value),
             type: 'IntProperty',
-            notSupported: 'temp',
             info: "This governs how many status points are spent on carriable weight. Each point adds +50 to your weight base value (before other modifiers). Default is 0.",
             validate: (val) => Number.isInteger(val) && val >= 0,
             validationError: 'statusPoints.weight should be an integer greater than 0.',
@@ -193,21 +195,20 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             targetFilteredKey: 'StatusPoint.value',
             findWithFilter: (spObj) => ['\u6355\u7372\u7387', '捕獲率'].includes(spObj.StatusName.value),
             type: 'IntProperty',
-            notSupported: 'temp',
             info: "This is stored in your SAV file underneath Status Points, but it's actually your capture rate (e.g. from Effigy Captures)! This bumps up your minimum capture rate. Have confirmed a value of 5000 here guarantees a basic blue sphere can 100% first try capture Jetragon, lol. Default is 0.",
             validate: (val) => Number.isInteger(val) && val >= 0,
-            validationError: 'statusPoints.catchRate should be an integer greater than 0.',
+            validationError: 'statusPoints.captureRate should be an integer greater than 0.',
           },
           workSpeed: {
+            paverId: 'statusPoints.workSpeed',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
             findWithFilter: (spObj) => ['\u4f5c\u696d\u901f\u5ea6', '作業速度'].includes(spObj.StatusName.value),
             type: 'IntProperty',
-            notSupported: 'temp',
             info: "This governs how many status points are spent on work speed. Each point adds +50 to your work/craft speed base value (before other modifiers). Default is 0.",
             validate: (val) => Number.isInteger(val) && val >= 0,
-            validationError: 'statusPoints.catchRate should be an integer greater than 0.',
+            validationError: 'statusPoints.workSpeed should be an integer greater than 0.',
           },
         },
         voiceId: {

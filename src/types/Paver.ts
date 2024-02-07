@@ -90,4 +90,5 @@ export interface IChangelogEntry {
   notSupported?: string,
   validationPassed?: boolean,
   validationError?: string,
+  notes?: string,
 }

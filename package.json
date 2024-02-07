@@ -14,14 +14,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "npx tsc",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon\"",
-    "install-packager": "npm install -g pkg",
-    "prepackage": "cd dist && yarn install && cd ..",
-    "package": "pkg ./dist --targets node18-win-x64 --output ./bin/paver-win --compress Brotli",
-    "package-all": "pkg ./dist --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output ./bin/paver",
-    "start": "node .",
-    "start:s": "npx tsc && node ./dist/indexStreaming.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --outfile=paver-build.js",
+    "package:1": "node --experimental-sea-config sea-config.json",
+    "package:2-nix": "cp $(command -v node) paver",
+    "package:2-windows": "node -e \"require('fs').copyFileSync(process.execPath, 'paver.exe')\"",
+    "package:3-osx": "codesign --remove-signature paver",
+    "package:3-windows": "signtool remove /s paver.exe",
+    "package:sign-windows": "signtool sign /fd SHA512 paver.exe",
+    "dev": "npx tsc && node ./dist/index.js",
+    "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -38,6 +39,7 @@
     "@types/stream-chain": "^2.0.4",
     "@types/stream-json": "^1.7.7",
     "concurrently": "^8.2.2",
+    "esbuild": "^0.20.0",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

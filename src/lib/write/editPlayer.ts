@@ -41,8 +41,6 @@ export const editPlayerInLevelSav = ({
 
   // Iterate over changes and 
   const recursivelyMakeChanges = (keyName: string, changeValue: any, singleFieldMapEntry) => {
-    // console.info("Keyname, ChangeValue, SingleMapEntry", keyName, changeValue, singleFieldMapEntry)
-
     if (singleFieldMapEntry) {
       const thisChangeLog: IChangelogEntry = {
         entity: 'player',
@@ -130,7 +128,7 @@ export const editPlayerInLevelSav = ({
         modifiedPlayerJson = modifiedObject;
         successfulChangedKeys.push(keyName);
 
-
+        // Handle special cases for some values
         if (keyName === 'level') {
           // If we're updating the players level, and Exp is not also defined, calculate and set the player's total XP. If Exp is also defined, we'll assume the user knows what they're doing and won't override it.
           if (!('exp' in playerChangesToMake)) {
@@ -170,6 +168,123 @@ export const editPlayerInLevelSav = ({
             console.info("Note: You are updating a player's level, and you've defined an `exp` value. The `exp` value will be used to set the player's total XP. Be careful with this, as it can result in a player with a level that doesn't match their XP (a level 40 could end up getting XP as if they're level 1). If you want to set the player's level and XP to match, you should only define the `level` value and this tool will calculate for you.");
           }
           // Add a new changlog for this.
+        }
+
+        /**
+         * TODO: Add support for cascading changes, where a given change will trigger additional changes to other fields.
+         * This would be defined in field map and would be useful for things like status points, where changing the status points would also change the maxHp, maxSp, etc.
+         */
+
+        // User wants to adjust status point on maxHp
+        if (singleFieldMapEntry?.paverId === 'statusPoints.maxHp') {
+          let tempNewAmount = 500000 + (newValue * 100000); // Work speed should be the base amt + (status points * 100)
+          const tempRefFieldMapEntry = fieldMap['maxHp'];
+          if (tempRefFieldMapEntry) {
+            const tempNewChangeLog: IChangelogEntry = {
+              entity: 'player',
+              entityId: normalizedGuid,
+              file: 'Level.sav',
+              field: keyName,
+              keyInFile: tempRefFieldMapEntry.targetKey,
+              newValue: tempNewAmount,
+              notes: `${keyName} should be the base amount (100) plus (status points * 100). This field was modified because this player's "${singleFieldMapEntry?.paverId}" was updated.`,
+            }
+
+            const {
+              modifiedObject: tempNewModifiedObject,
+              oldValue: oldReferenceValue
+            } = setNestedValue(modifiedPlayerJson, {
+              ...tempRefFieldMapEntry,
+            }, tempNewAmount);
+
+            if (modifiedObject) {
+              tempNewChangeLog.oldValue = oldReferenceValue;
+              tempNewChangeLog.validationPassed = true;
+            }
+
+            playerChangelog.push(tempNewChangeLog);
+            modifiedPlayerJson = tempNewModifiedObject;
+
+          } else {
+            console.error(`Unable to find the ${keyName} field in the field map. This is a bug. Please report it.`);
+            playerChangeErrors.push(`Unable to find the ${keyName} field in the field map. This is a bug. Please report it.`);
+          }
+        }
+
+        // User wants to adjust status point on maxSp
+        if (singleFieldMapEntry?.paverId === 'statusPoints.maxSp') {
+          let tempNewAmount = 100 + (newValue * 10); // Work speed should be the base amt + (status points * 10)
+          const tempRefFieldMapEntry = fieldMap['maxSp'];
+          if (tempRefFieldMapEntry) {
+            const tempNewChangeLog: IChangelogEntry = {
+              entity: 'player',
+              entityId: normalizedGuid,
+              file: 'Level.sav',
+              field: keyName,
+              keyInFile: tempRefFieldMapEntry.targetKey,
+              newValue: tempNewAmount,
+              notes: `${keyName} should be the base amount (100) plus (status points * 10). This field was modified because this player's "${singleFieldMapEntry?.paverId}" was updated.`,
+            }
+
+            const {
+              modifiedObject: tempNewModifiedObject,
+              oldValue: oldReferenceValue
+            } = setNestedValue(modifiedPlayerJson, {
+              ...tempRefFieldMapEntry,
+            }, tempNewAmount);
+
+            if (modifiedObject) {
+              tempNewChangeLog.oldValue = oldReferenceValue;
+              tempNewChangeLog.validationPassed = true;
+            }
+
+            playerChangelog.push(tempNewChangeLog);
+            modifiedPlayerJson = tempNewModifiedObject;
+
+          } else {
+            console.error(`Unable to find the ${keyName} field in the field map. This is a bug. Please report it.`);
+            playerChangeErrors.push(`Unable to find the ${keyName} field in the field map. This is a bug. Please report it.`);
+          }
+        }
+
+        /**
+         * Attack/Weight do not need to be updated outside of the statusPoints array
+         */
+
+        // User wants to adjust status point on work speed
+        if (singleFieldMapEntry?.paverId === 'statusPoints.workSpeed') {
+          const newWorkSpeedAmt = 100 + (newValue * 50); // Work speed should be the base amt + (status points * 50)
+          const workSpeedFieldMapEntry = fieldMap['workSpeed'];
+          if (workSpeedFieldMapEntry) {
+            const workSpeedChangeLog: IChangelogEntry = {
+              entity: 'player',
+              entityId: normalizedGuid,
+              file: 'Level.sav',
+              field: keyName,
+              keyInFile: workSpeedFieldMapEntry.targetKey,
+              newValue: newWorkSpeedAmt,
+              notes: `Work speed should be the base amount (100) plus (status points * 50). This field was modified because this player's "${singleFieldMapEntry?.paverId}" was updated.`,
+            }
+
+            const {
+              modifiedObject: workSpeedModifiedObject,
+              oldValue: oldWorkSpeedValue
+            } = setNestedValue(modifiedPlayerJson, {
+              ...workSpeedFieldMapEntry,
+            }, newWorkSpeedAmt);
+
+            if (modifiedObject) {
+              workSpeedChangeLog.oldValue = oldWorkSpeedValue;
+              workSpeedChangeLog.validationPassed = true;
+            }
+
+            playerChangelog.push(workSpeedChangeLog);
+            modifiedPlayerJson = workSpeedModifiedObject;
+
+          } else {
+            console.error('Unable to find the workSpeed field in the field map. This is a bug. Please report it.');
+            playerChangeErrors.push('Unable to find the workSpeed field in the field map. This is a bug. Please report it.');
+          }
         }
       } else {
         thisChangeLog.validationPassed = false;
