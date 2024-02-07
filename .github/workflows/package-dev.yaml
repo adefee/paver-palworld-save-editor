@@ -30,6 +30,7 @@ jobs:
       - name : Prep Release Zip
         shell: bash
         run: |
+          mkdir bin
           cp LICENSE bin/
           mv paver-${{ steps.package_version.outputs.VERSION }}.zip bin/
           cp README.md bin/
