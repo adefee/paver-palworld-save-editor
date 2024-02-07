@@ -32,20 +32,20 @@ jobs:
         run: |
           mkdir bin
           cp LICENSE bin/
-          mv paver-${{ steps.package_version.outputs.VERSION }}.zip bin/
+          mv paver-v${{ steps.package_version.outputs.VERSION }}.zip bin/
           cp README.md bin/
           cp helpers bin/ -r
           cp config.example.json bin/config.example.json
       - uses: actions/upload-artifact@v4
         with:
-          name: paver-${{ steps.package_version.outputs.VERSION }}
+          name: paver-v${{ steps.package_version.outputs.VERSION }}
           path: bin/
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-${{ steps.package_version.outputs.VERSION }}.zip
+            bin/paver-v${{ steps.package_version.outputs.VERSION }}.zip
             bin/config.example.json
             bin/helpers
             LICENSE

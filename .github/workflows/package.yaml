@@ -2,7 +2,7 @@ name: Build & Package Dev, Cut Pre-Release
 on:
   push:
     branches: 
-      - main
+      - development
     tags:
       # Only run workflow on tags with the format x.y.z-dev
       - 'v[0-9]+.[0-9]+.[0-9]+'
@@ -23,24 +23,29 @@ jobs:
           node-version: '18.x'
           cache: 'yarn'
           registry-url: 'https://registry.npmjs.org'
+      - name: Get version from package.json
+        id: package_version
+        run: echo "::set-output name=VERSION::$(node -p "require('./package.json').version")"
+        shell: bash
       - name : Prep Release Zip
         shell: bash
         run: |
-          mv paver-${{steps.ghd.outputs.describe}}.zip bin/
+          mkdir bin
           cp LICENSE bin/
+          mv paver-v${{ steps.package_version.outputs.VERSION }}.zip bin/
           cp README.md bin/
           cp helpers bin/ -r
           cp config.example.json bin/config.example.json
       - uses: actions/upload-artifact@v4
         with:
-          name: bin
+          name: paver-v${{ steps.package_version.outputs.VERSION }}
           path: bin/
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            bin/paver-${{steps.ghd.outputs.describe}}.zip
+            bin/paver-v${{ steps.package_version.outputs.VERSION }}.zip
             bin/config.example.json
             bin/helpers
             LICENSE
