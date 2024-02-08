@@ -317,6 +317,7 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
         unlockedFastTravels: fieldMapAliasedValues.unlockedFastTravels,
         unlockedFastTravel: fieldMapAliasedValues.unlockedFastTravels,
         countEffigiesFound: fieldMapAliasedValues.countEffigiesFound,
+        countEffigies: fieldMapAliasedValues.countEffigiesFound,
         countRelics: fieldMapAliasedValues.countEffigiesFound,
         voiceId: {
           parameterId: null,
