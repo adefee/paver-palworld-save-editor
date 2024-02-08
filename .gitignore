@@ -138,6 +138,8 @@ reports/
 reports/*
 report/
 report/*
+paver-reports/
+paver-reports/*
 build/
 build/*
 datastore/

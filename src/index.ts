@@ -803,6 +803,7 @@ const saveEditorMain = async () => {
 
   // Add generation timestmap to report
   reportData.summary.paver.runtimeCompletedAt = new Date().toISOString();
+  reportData.changelog = changelog;
 
   // Attempt to export our report
   if (appConfig?.reporting?.export !== false) {

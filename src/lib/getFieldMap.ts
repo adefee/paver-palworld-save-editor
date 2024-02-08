@@ -24,84 +24,184 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
 } => {
   let returnValue = {};
   const defaultNotSupportedValue = "This field is not (yet) supported - it should be available in the near future!";
+
+  /**
+   * Build an initial map of values, and then our switch statement can reference the same value with aliases as needed
+   */
+  const fieldMapAliasedValues: {
+    [key: string]: {
+      info?: string,
+      parameterId: string | null, // This will be the parameterId of the field, if it has one (amost never).
+      targetKey: string,
+      type: string,
+      validate?: (val: any) => boolean,
+      validationError?: string,
+      postprocess?: (val: any) => any,
+      notSupported?: string,
+      followChildren?: boolean,
+      whatDoesThiDo?: boolean,
+      subTypeKey?: string,
+      subTypeValue?: string,
+      findWithFilter?: (val: any) => boolean,
+      paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
+    }
+  } = {
+    level: {
+      info: "This is a player's level. Specifying `level` without `exp` will automatically calculate and set the player to the matching total XP for the specified level.",
+      parameterId: null,
+      targetKey: 'Level.value',
+      type: 'IntProperty',
+      validate: (val) => enableGuardrails ?
+        Number.isInteger(val) && val >= 0 && val <= 50 :
+        Number.isInteger(val) && val >= 0,
+      validationError: 'Level should be an integer between 0 and 50',
+    },
+    exp: {
+      info: "This is a player's total experience points. XP earned from captures, drops, etc scale on this value. For example, setting a level 1 player to level 40 without modifying this value will result in a level 40 player that gains XP at the same rate as a level 1 player (meaning going from 40 -> 41 takes 41 levels' worth of XP, lol). Specifying `level` without `exp` will automatically calculate and set the player to the matching total XP for the specified level.",
+      parameterId: null,
+      targetKey: 'Exp.value',
+      type: 'IntProperty',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'Exp should be an integer greater than 0',
+    },
+    handle: {
+      info: "Your ingame monicker.",
+      parameterId: null,
+      targetKey: 'NickName.value',
+      type: 'StrProperty',
+      validate: (val: string) => enableGuardrails ?
+        val?.length >= 0 && val?.length <= 50 :
+        val?.length >= 0,
+      validationError: 'Handle (your name) should be a string with a length of 1-20 characters',
+    },
+    currentHp: {
+      info: "This is the player's current HP. The ingame default is 50000.",
+      parameterId: null,
+      targetKey: 'HP.value.Value.value',
+      type: 'Int64Property',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'currentHp should be an integer greater than 0. The ingame default is 50000.',
+    },
+    maxHp: {
+      info: "This is the player's base maximum HP, before add'l modifiers (like Pals and stat points, etc). The ingame default is 50000.",
+      parameterId: null,
+      targetKey: 'MaxHP.value.Value.value',
+      type: 'Int64Property',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'currentHp should be an integer greater than 0. The ingame default is 50000.',
+    },
+    maxSp: {
+      info: "This is the player's base maximum Stamina, before add'l modifiers (like Pals and stat points, etc). The ingame default is 50000.",
+      parameterId: null,
+      targetKey: 'MaxSP.value.Value.value',
+      type: 'Int64Property',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'currentSp should be an integer greater than 0. The ingame default is 50000.',
+    },
+    hunger: {
+      info: "This is the player's hunger. The ingame default is 100. For some reason, the game calculates this as a 14-point float. Not sure why it needs that much precision.",
+      parameterId: null,
+      targetKey: 'FullStomach.value',
+      type: 'FloatProperty',
+      postprocess: (val) => parseFloat(val.toFixed(10)),
+      validate: (val) => enableGuardrails ?
+        typeof val === 'number' && val >= 0 && val <= 100 :
+        typeof val === 'number' && val >= 0,
+      validationError: 'hunger should be a decimal (float) between 1 and 100. The ingame default is 100',
+    },
+    sanityValue: {
+      info: "I *think* this is the player's sanity, which doesn't appear to be relevant/used currently? Maybe it is used as a modifier against other values (lower sanity more dmg taken, etc?). Do you know?",
+      parameterId: null,
+      targetKey: 'SanityValue.value',
+      type: 'FloatProperty',
+      postprocess: (val) => parseFloat(val.toFixed(10)),
+      validate: (val) => enableGuardrails ?
+        typeof val === 'number' && val >= 0 && val <= 100 :
+        typeof val === 'number' && val >= 0,
+      validationError: "sanityValue should be a decimal (float) between 1 and 100. The ingame default is 100. This is listed under the player, not a pal, so it's not clear to me if this is used. Do you know?",
+      whatDoesThiDo: true,
+    },
+    workSpeed: {
+      parameterId: null,
+      targetKey: 'CraftSpeed.value',
+      type: 'IntProperty',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      info: "This is the base speed at which the player works/crafts. Default is 100. 500 is 5x speed (its kinda hilarious).",
+      validationError: 'craftSpeed should be an integer greater than 0. The ingame default is 100.',
+    },
+    unusedStatusPoint: {
+      info: "This is the number of unused status points for the player. By default, you receive an new `unusedStatusPoint` every level, which can be spent on status modifiers (hp, weight, stamina, etc). The ingame default is 0.",
+      parameterId: null,
+      targetKey: 'UnusedStatusPoint.value',
+      type: 'IntProperty',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'unusedStatusPoint should be an integer greater than 0.',
+    },
+    voiceId: {
+      parameterId: null,
+      targetKey: 'VoiceID.value',
+      type: 'IntProperty',
+      validate: (val) => enableGuardrails ?
+        Number.isInteger(val) && val >= 1 && val <= 6 :
+        Number.isInteger(val),
+      validationError: 'voiceId should be an integer >= 1 and <= 6. The ingame default is 1. 1-3 are more traditionally feminine voices, 4-6 are more traditionally masculine voices.',
+    },
+    techPoints: {
+      info: "Number of unspent technology points for the player.",
+      parameterId: null,
+      targetKey: 'TechnologyPoint.value',
+      type: 'IntProperty',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'Level should be an integer >= 0',
+    },
+    ancientTechPoints: {
+      info: "Number of unspent ancient technology points (earned from bosses) for the player.",
+      parameterId: null,
+      targetKey: 'bossTechnologyPoint.value',
+      type: 'IntProperty',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'Level should be an integer >= 0',
+    },
+    unlockedRecipes: {
+      info: "List of unlocked recipes for the player.",
+      notSupported: defaultNotSupportedValue,
+      parameterId: null,
+      validate: (val) => true,
+      targetKey: 'UnlockedRecipeTechnologyNames.value',
+      type: 'ArrayProperty',
+      // validate: (val) => Number.isInteger(val) && val >= 0,
+      // validationError: 'Level should be an integer >= 0',
+    },
+    countEffigiesFound: {
+      info: "Same as `relicsInPossession`. This is expected to be a count of unspent effigy points for the player.",
+      parameterId: null,
+      targetKey: 'RecordData.value.RelicPossessNum.value',
+      type: 'IntProperty',
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'Effigy count should be an integer >= 0',
+      whatDoesThiDo: true,
+    },
+  }
+
   switch (filename) {
     case 'Level.sav':
       returnValue = {
-        level: {
-          info: "This is a player's level. Specifying `level` without `exp` will automatically calculate and set the player to the matching total XP for the specified level.",
-          parameterId: null,
-          targetKey: 'Level.value',
-          type: 'IntProperty',
-          validate: (val) => enableGuardrails ?
-            Number.isInteger(val) && val >= 0 && val <= 50 :
-            Number.isInteger(val) && val >= 0,
-          validationError: 'Level should be an integer between 0 and 50',
-        },
-        exp: {
-          info: "This is a player's total experience points. XP earned from captures, drops, etc scale on this value. For example, setting a level 1 player to level 40 without modifying this value will result in a level 40 player that gains XP at the same rate as a level 1 player (meaning going from 40 -> 41 takes 41 levels' worth of XP, lol). Specifying `level` without `exp` will automatically calculate and set the player to the matching total XP for the specified level.",
-          parameterId: null,
-          targetKey: 'Exp.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'Exp should be an integer greater than 0',
-        },
-        handle: {
-          info: "Your ingame monicker.",
-          parameterId: null,
-          targetKey: 'NickName.value',
-          type: 'StrProperty',
-          validate: (val: string) => enableGuardrails ?
-            val?.length >= 0 && val?.length <= 50 :
-            val?.length >= 0,
-          validationError: 'Handle (your name) should be a string with a length of 1-20 characters',
-        },
-        currentHp: {
-          info: "This is the player's current HP. The ingame default is 50000.",
-          parameterId: null,
-          targetKey: 'HP.value.Value.value',
-          type: 'Int64Property',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'currentHp should be an integer greater than 0. The ingame default is 50000.',
-        },
-        maxHp: {
-          info: "This is the player's base maximum HP, before add'l modifiers (like Pals and stat points, etc). The ingame default is 50000.",
-          parameterId: null,
-          targetKey: 'MaxHP.value.Value.value',
-          type: 'Int64Property',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'currentHp should be an integer greater than 0. The ingame default is 50000.',
-        },
-        maxSp: {
-          info: "This is the player's base maximum Stamina, before add'l modifiers (like Pals and stat points, etc). The ingame default is 50000.",
-          parameterId: null,
-          targetKey: 'MaxSP.value.Value.value',
-          type: 'Int64Property',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'currentSp should be an integer greater than 0. The ingame default is 50000.',
-        },
-        hunger: {
-          info: "This is the player's hunger. The ingame default is 100. For some reason, the game calculates this as a 14-point float. Not sure why it needs that much precision.",
-          parameterId: null,
-          targetKey: 'FullStomach.value',
-          type: 'FloatProperty',
-          postprocess: (val) => parseFloat(val.toFixed(10)),
-          validate: (val) => enableGuardrails ?
-            typeof val === 'number' && val >= 0 && val <= 100 :
-            typeof val === 'number' && val >= 0,
-          validationError: 'hunger should be a decimal (float) between 1 and 100. The ingame default is 100',
-        },
-        sanityValue: {
-          info: "I *think* this is the player's sanity, which doesn't appear to be relevant/used currently? Maybe it is used as a modifier against other values (lower sanity more dmg taken, etc?). Do you know?",
-          parameterId: null,
-          targetKey: 'SanityValue.value',
-          type: 'FloatProperty',
-          postprocess: (val) => parseFloat(val.toFixed(10)),
-          validate: (val) => enableGuardrails ?
-            typeof val === 'number' && val >= 0 && val <= 100 :
-            typeof val === 'number' && val >= 0,
-          validationError: "sanityValue should be a decimal (float) between 1 and 100. The ingame default is 100. This is listed under the player, not a pal, so it's not clear to me if this is used. Do you know?",
-          whatDoesThiDo: true,
-        },
+        level: fieldMapAliasedValues.level,
+        exp: fieldMapAliasedValues.exp,
+        experience: fieldMapAliasedValues.exp,
+        xp: fieldMapAliasedValues.exp,
+        handle: fieldMapAliasedValues.handle,
+        name: fieldMapAliasedValues.handle,
+        currentHp: fieldMapAliasedValues.currentHp,
+        currentHP: fieldMapAliasedValues.currentHp,
+        maxHp: fieldMapAliasedValues.maxHp,
+        maxHP: fieldMapAliasedValues.maxHp,
+        maxSp: fieldMapAliasedValues.maxSp,
+        maxSP: fieldMapAliasedValues.maxSp,
+        hunger: fieldMapAliasedValues.hunger,
+        fullStomach: fieldMapAliasedValues.hunger,
+        sanityValue: fieldMapAliasedValues.sanityValue,
+        sanity: fieldMapAliasedValues.sanityValue,
         isPlayer: {
           info: "This is a boolean that determines if the player ... is a player. Theoretically. Haven't tried changing this yet. Might enable a spectator mode or something else. The ingame default is true.",
           parameterId: null,
@@ -113,14 +213,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
           validationError: 'isPlayer should be a boolean (true/false). The ingame default is true.',
           whatDoesThiDo: true,
         },
-        workSpeed: {
-          parameterId: null,
-          targetKey: 'CraftSpeed.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          info: "This is the base speed at which the player works/crafts. Default is 100. 500 is 5x speed (its kinda hilarious).",
-          validationError: 'craftSpeed should be an integer greater than 0. The ingame default is 100.',
-        },
+        craftSpeed: fieldMapAliasedValues.workSpeed,
+        workSpeed: fieldMapAliasedValues.workSpeed,
         workSpeeds: {
           targetKey: 'CraftSpeeds.value',
           notSupported: "This field is not (yet) supported - it's values are heavily nested with a bunch of child 'WorkSuitability' objects that have unique nuance from other fields.",
@@ -134,14 +228,10 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
           validationError: 'support should be an integer greater than 0. The ingame default is 100.',
           whatDoesThiDo: true,
         },
-        unusedStatusPoint: {
-          info: "This is the number of unused status points for the player. By default, you receive an new `unusedStatusPoint` every level, which can be spent on status modifiers (hp, weight, stamina, etc). The ingame default is 0.",
-          parameterId: null,
-          targetKey: 'UnusedStatusPoint.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'unusedStatusPoint should be an integer greater than 0.',
-        },
+        unusedStatusPoint: fieldMapAliasedValues.unusedStatusPoint,
+        unusedStatusPoints: fieldMapAliasedValues.unusedStatusPoint,
+        unusedStatPoint: fieldMapAliasedValues.unusedStatusPoint,
+        unusedStatPoints: fieldMapAliasedValues.unusedStatusPoint,
         statusPoints: {
           info: "This is the parent property for status point settings. By default, you receive an new `unusedStatusPoint` every level, which can be spent here. These will be added to your base stats (hp, weight, stamina, etc). The ingame default is 0 for all values.",
           followChildren: true, // tell iterator to follow the children keys instead of just this key
@@ -211,65 +301,23 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             validationError: 'statusPoints.workSpeed should be an integer greater than 0.',
           },
         },
-        voiceId: {
-          parameterId: null,
-          targetKey: 'VoiceID.value',
-          type: 'IntProperty',
-          validate: (val) => enableGuardrails ?
-            Number.isInteger(val) && val >= 1 && val <= 6 :
-            Number.isInteger(val),
-          validationError: 'voiceId should be an integer >= 1 and <= 6. The ingame default is 1. 1-3 are more traditionally feminine voices, 4-6 are more traditionally masculine voices.',
-        },
+        voiceId: fieldMapAliasedValues.voiceId,
+        voiceid: fieldMapAliasedValues.voiceId,
       }
       break;
     case 'Player.sav':
       returnValue = {
-        techPoints: {
-          info: "Number of unspent technology points for the player.",
-          parameterId: null,
-          targetKey: 'TechnologyPoint.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'Level should be an integer >= 0',
-        },
-        ancientTechPoints: {
-          info: "Number of unspent ancient technology points (earned from bosses) for the player.",
-          parameterId: null,
-          targetKey: 'bossTechnologyPoint.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'Level should be an integer >= 0',
-        },
-        unlockedRecipes: {
-          info: "List of unlocked recipes for the player.",
-          notSupported: defaultNotSupportedValue,
-          parameterId: null,
-          validate: (val) => true,
-          targetKey: 'UnlockedRecipeTechnologyNames.value',
-          type: 'ArrayProperty',
-          // validate: (val) => Number.isInteger(val) && val >= 0,
-          // validationError: 'Level should be an integer >= 0',
-        },
-        unlockedFastTravels: {
-          info: "Specific fast travels unlocked by the player.",
-          notSupported: defaultNotSupportedValue,
-          parameterId: null,
-          targetKey: 'RecordData.value.FastTravelPointUnlockFlag.value',
-          type: 'MapProperty',
-          subTypeKey: 'NameProperty',
-          subTypeValue: 'BoolProperty',
-          // validate: (val) => Number.isInteger(val) && val >= 0,
-          // validationError: 'Level should be an integer >= 0',
-        },
-        countEffigiesFound: {
-          info: "Same as `relicsInPossession`. This is expected to be a count of unspent effigy points for the player.",
-          parameterId: null,
-          targetKey: 'RecordData.value.RelicPossessNum.value',
-          type: 'IntProperty',
-          validate: (val) => Number.isInteger(val) && val >= 0,
-          validationError: 'Effigy count should be an integer >= 0',
-          whatDoesThiDo: true,
-        },
+        techPoints: fieldMapAliasedValues.techPoints,
+        techPoint: fieldMapAliasedValues.techPoints,
+        ancientTechPoints: fieldMapAliasedValues.ancientTechPoints,
+        ancientTechPoint: fieldMapAliasedValues.ancientTechPoints,
+        unlockedRecipes: fieldMapAliasedValues.unlockedRecipes,
+        unlockedRecipe: fieldMapAliasedValues.unlockedRecipes,
+        unlockedTech: fieldMapAliasedValues.unlockedRecipes,
+        unlockedFastTravels: fieldMapAliasedValues.unlockedFastTravels,
+        unlockedFastTravel: fieldMapAliasedValues.unlockedFastTravels,
+        countEffigiesFound: fieldMapAliasedValues.countEffigiesFound,
+        countRelics: fieldMapAliasedValues.countEffigiesFound,
         voiceId: {
           parameterId: null,
           targetKey: 'PlayerCharacterMakeData.value.VoiceID.value',
