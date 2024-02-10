@@ -16,7 +16,7 @@ const successfulConversion = `${attributeToCheahJs} Looks like conversion was su
 
 import JSONStream from 'JSONStream';
 import { ensureDirectoryExists, ensureFileExists } from './lib/ensureDirectoryExists';
-import { ISaveAsJsonProperties } from './types/SaveAsJson';
+import { ISaveAsJsonPalPlayerKeyValuePair, ISaveAsJsonProperties } from './types/SaveAsJson';
 import { IChangelogEntry, IPaverConfig } from './types/Paver';
 import normalizeGuid from './lib/normalizeGuid';
 import promptToClose from './lib/promptToClose';
@@ -432,20 +432,35 @@ const saveEditorMain = async () => {
           if (!isMissingCharSaveMap) {
             const { value: playerPalList } = worldSaveData?.value?.CharacterSaveParameterMap;
 
+            const rawPlayersToModify: ISaveAsJsonPalPlayerKeyValuePair[] = [];
+
+            // Iterate over each raw player/pal and determine if pal or player.
             for (const rawPlayerOrPal of playerPalList) {
               const normalizedGuid = normalizeGuid(rawPlayerOrPal?.key?.PlayerUId?.value);
 
               if (normalizedGuid?.length < 1 || normalizedGuid.startsWith('00000000000')) {
-                /**
-                 * This is a Pal, not a player.
-                 * We'll track whose Pal it is, and write data to file.
-                 * Some of this is included in the output report.
-                 */
+
                 const { SaveParameter } = rawPlayerOrPal?.value?.RawData?.value?.object;
                 const {
                   CharacterID,
                   Level,
                 } = SaveParameter?.value;
+
+                /**
+                 * For single player saves, the GUID is always 0000000000000000.
+                 * This kinda sucks, because we have to handle our logic differently.
+                 * Players don't have a `OwnerPlayerUId`, though, so we can pretty safely (for now)
+                 * check for that and assume this is player if noexist
+                 */
+                if (!SaveParameter.value?.OwnerPlayerUId) {
+                  rawPlayersToModify.push(rawPlayerOrPal);
+                }
+
+                /**
+                 * This is a Pal, not a player.
+                 * We'll track whose Pal it is, and write data to file.
+                 * Some of this is included in the output report.
+                 */
 
                 const owningPlayerGuid = normalizeGuid(SaveParameter?.value?.OwnerPlayerUId?.value);
 
@@ -472,124 +487,132 @@ const saveEditorMain = async () => {
                   JSON.stringify(rawPlayerOrPal, null, 2)
                 );
               } else {
-                /**
+                rawPlayersToModify.push(rawPlayerOrPal);
+              }
+            }
+
+
+            // Modify the players we've found. Pals were already handled above.
+            for (const rawPlayer of rawPlayersToModify) {
+              const normalizedGuid = normalizeGuid(rawPlayer?.key?.PlayerUId?.value);
+              /**
                  * This is a player. Determine if there are any changes we need to make to this player,
                  * and write our data to file.
                  */
-                console.log('Processing player...', normalizedGuid);
+              console.log('Processing player...', normalizedGuid);
 
-                // See if there are other players with our handle
-                const {
-                  value: thisPlayerRawData
-                } = rawPlayerOrPal?.value?.RawData?.value?.object?.SaveParameter;
+              // See if there are other players with our handle
+              const {
+                value: thisPlayerRawData
+              } = rawPlayer?.value?.RawData?.value?.object?.SaveParameter;
 
-                const playerChangesToMake = changesToMake?.players?.find(
-                  x => normalizeGuid(x.guid) === normalizedGuid || x.handle === thisPlayerRawData?.NickName?.value
-                );
+              const playerChangesToMake = changesToMake?.players?.find(
+                x => normalizeGuid(x.guid) === normalizedGuid || x.handle === thisPlayerRawData?.NickName?.value
+              );
 
-                /**
-                 * There are some circumstances that affect whether or not we'll modify a given user.
-                 * For example, to change a player's handle, we need to know the GUID.
-                 * Or, if the GUID is not specified and there are multiple players with the same handle, we don't want to make unintended changes to one or all such players.
-                 * In these cases, we'll notify the user and skip modifying the player.
-                 */
-                let playerNeedsChanges = true;
-                let keysToChange: string[] = [];
+              /**
+               * There are some circumstances that affect whether or not we'll modify a given user.
+               * For example, to change a player's handle, we need to know the GUID.
+               * Or, if the GUID is not specified and there are multiple players with the same handle, we don't want to make unintended changes to one or all such players.
+               * In these cases, we'll notify the user and skip modifying the player.
+               */
+              let playerNeedsChanges = true;
+              let keysToChange: string[] = [];
 
-                if (!playerChangesToMake) {
-                  // We didn't find any requested changes for this player based on GUID or handle.
-                  playerNeedsChanges = false;
-                } else if (playerChangesToMake) {
-                  // If the changesToMake has a handle but no GUID, make sure there is only one such player
-                  // Otherwise, we'll abort modifying this player.
-                  if (!playerChangesToMake?.guid) {
-                    const otherPlayersWithThisHandle = changesToMake?.players?.filter(
-                      x => x.handle === thisPlayerRawData?.NickName?.value
-                    );
-                    if (otherPlayersWithThisHandle?.length > 1) {
-                      warnings.push(`Multiple players with the handle ${thisPlayerRawData?.NickName?.value} were found. Because a GUID was not provided, Paver cannot determine which player to modify - to prevent an unintended change, all requested changes for this player will be ignored. Please provide a unique handle or a GUID for each player.`);
-                      playerNeedsChanges = false;
-                    }
-                  }
-
-                  // Make sure we have actual changes to make - if we're just specifying a GUID, we need to have atleast one other change.
-                  if (playerNeedsChanges) {
-
-                    // Go ahead and push this user into our list of player savs to modify
-                    listOfPlayerSavsToModify.push({
-                      guid: normalizedGuid,
-                      handle: thisPlayerRawData?.NickName?.value,
-                      changesToMake: playerChangesToMake,
-                    });
-
-                    Object.keys(playerChangesToMake).forEach(key => {
-                      if (
-                        key !== 'handle' ||
-                        (key === 'handle' &&
-                          playerChangesToMake.handle !== thisPlayerRawData?.NickName?.value
-                        )) {
-                        if (key !== 'guid') {
-                          keysToChange.push(key);
-                        }
-                      }
-                    });
+              if (!playerChangesToMake) {
+                // We didn't find any requested changes for this player based on GUID or handle.
+                playerNeedsChanges = false;
+              } else if (playerChangesToMake) {
+                // If the changesToMake has a handle but no GUID, make sure there is only one such player
+                // Otherwise, we'll abort modifying this player.
+                if (!playerChangesToMake?.guid) {
+                  const otherPlayersWithThisHandle = changesToMake?.players?.filter(
+                    x => x.handle === thisPlayerRawData?.NickName?.value
+                  );
+                  if (otherPlayersWithThisHandle?.length > 1) {
+                    warnings.push(`Multiple players with the handle ${thisPlayerRawData?.NickName?.value} were found. Because a GUID was not provided, Paver cannot determine which player to modify - to prevent an unintended change, all requested changes for this player will be ignored. Please provide a unique handle or a GUID for each player.`);
+                    playerNeedsChanges = false;
                   }
                 }
 
-                /**
-                * If the player needs changes, let's make those changes and then write to file.
-                */
-                const targetPlayerPath = `${internalOutputPath}/CharacterSaveParameterMap/Players/${normalizedGuid}.json`;
-                ensureFileExists(targetPlayerPath);
-                if (playerNeedsChanges && keysToChange.length > 0) {
-                  console.info(`Will make ${keysToChange.length} changes (${keysToChange.join(', ').trim()}) to "${thisPlayerRawData?.NickName?.value}" (GUID ${normalizedGuid})"`);
-                  const [
-                    modifiedPlayerJson,
-                    changelogForThisPlayer,
-                    changeErrorsForThisPlayer,
-                  ] = editPlayerInLevelSav({
-                    rawPlayerOrPal,
-                    playerChangesToMake,
+                // Make sure we have actual changes to make - if we're just specifying a GUID, we need to have atleast one other change.
+                if (playerNeedsChanges) {
+
+                  // Go ahead and push this user into our list of player savs to modify
+                  listOfPlayerSavsToModify.push({
+                    guid: normalizedGuid,
+                    handle: thisPlayerRawData?.NickName?.value,
+                    changesToMake: playerChangesToMake,
                   });
 
-                  if (changeErrorsForThisPlayer.length > 0) {
-                    warnings = [
-                      ...warnings,
-                      ...changeErrorsForThisPlayer
-                    ]
-                  }
-
-                  changelog = [
-                    ...changelogForThisPlayer,
-                  ]
-
-                  // Add to report
-                  reportData.playerData[normalizedGuid] = {
-                    ...(reportData.playerData[normalizedGuid] || {}) as object,
-                    didPaverAttemptLevelSavChanges: true,
-                    ...modifiedPlayerJson.value.RawData.value.object.SaveParameter.value,
-                  }
-
-                  fs.writeFileSync(
-                    targetPlayerPath,
-                    JSON.stringify(modifiedPlayerJson, null, 2)
-                  );
-                } else {
-                  console.info(`No changes requested for "${thisPlayerRawData?.NickName?.value}" (GUID ${normalizedGuid})"`);
-
-                  // Add to report
-                  reportData.playerData[normalizedGuid] = {
-                    ...(reportData.playerData[normalizedGuid] || {}) as object,
-                    didPaverAttemptLevelSavChanges: false,
-                    ...rawPlayerOrPal.value.RawData.value.object.SaveParameter.value,
-                  }
-
-                  // Write back the unmodified player
-                  fs.writeFileSync(
-                    targetPlayerPath,
-                    JSON.stringify(rawPlayerOrPal, null, 2)
-                  );
+                  Object.keys(playerChangesToMake).forEach(key => {
+                    if (
+                      key !== 'handle' ||
+                      (key === 'handle' &&
+                        playerChangesToMake.handle !== thisPlayerRawData?.NickName?.value
+                      )) {
+                      if (key !== 'guid') {
+                        keysToChange.push(key);
+                      }
+                    }
+                  });
                 }
+              }
+
+              /**
+              * If the player needs changes, let's make those changes and then write to file.
+              */
+              const targetPlayerPath = `${internalOutputPath}/CharacterSaveParameterMap/Players/${normalizedGuid}.json`;
+              ensureFileExists(targetPlayerPath);
+
+              if (playerNeedsChanges && keysToChange.length > 0) {
+                console.info(`Will make ${keysToChange.length} changes (${keysToChange.join(', ').trim()}) to "${thisPlayerRawData?.NickName?.value}" (GUID ${normalizedGuid})"`);
+                const [
+                  modifiedPlayerJson,
+                  changelogForThisPlayer,
+                  changeErrorsForThisPlayer,
+                ] = editPlayerInLevelSav({
+                  rawPlayerOrPal: rawPlayer,
+                  playerChangesToMake,
+                });
+
+                if (changeErrorsForThisPlayer.length > 0) {
+                  warnings = [
+                    ...warnings,
+                    ...changeErrorsForThisPlayer
+                  ]
+                }
+
+                changelog = [
+                  ...changelogForThisPlayer,
+                ]
+
+                // Add to report
+                reportData.playerData[normalizedGuid] = {
+                  ...(reportData.playerData[normalizedGuid] || {}) as object,
+                  didPaverAttemptLevelSavChanges: true,
+                  ...modifiedPlayerJson.value.RawData.value.object.SaveParameter.value,
+                }
+
+                fs.writeFileSync(
+                  targetPlayerPath,
+                  JSON.stringify(modifiedPlayerJson, null, 2)
+                );
+              } else {
+                console.info(`No changes requested for "${thisPlayerRawData?.NickName?.value}" (GUID ${normalizedGuid})"`);
+
+                // Add to report
+                reportData.playerData[normalizedGuid] = {
+                  ...(reportData.playerData[normalizedGuid] || {}) as object,
+                  didPaverAttemptLevelSavChanges: false,
+                  ...rawPlayer.value.RawData.value.object.SaveParameter.value,
+                }
+
+                // Write back the unmodified player
+                fs.writeFileSync(
+                  targetPlayerPath,
+                  JSON.stringify(rawPlayer, null, 2)
+                );
               }
             }
           }
