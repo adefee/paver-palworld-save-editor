@@ -11,7 +11,7 @@ const pipelineAsync = promisify(pipeline);
 // Require necessary libs
 import filenameCompatibleTimestamp from './lib/filenameCompatibleTimestamp';
 
-const attributeToCheahJs = 'Thanks much, @cheajs!';
+const attributeToCheahJs = 'Thanks much, @cheahjs!';
 const successfulConversion = `${attributeToCheahJs} Looks like conversion was successful.`;
 
 import JSONStream from 'JSONStream';
