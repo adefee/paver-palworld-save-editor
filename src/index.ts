@@ -454,6 +454,7 @@ const saveEditorMain = async () => {
                  */
                 if (!SaveParameter.value?.OwnerPlayerUId) {
                   rawPlayersToModify.push(rawPlayerOrPal);
+                  continue;
                 }
 
                 /**
@@ -491,20 +492,23 @@ const saveEditorMain = async () => {
               }
             }
 
+            console.info(`Of total ${playerPalList.length} players/pals, ${rawPlayersToModify.length} will be treated as players.`)
 
             // Modify the players we've found. Pals were already handled above.
             for (const rawPlayer of rawPlayersToModify) {
               const normalizedGuid = normalizeGuid(rawPlayer?.key?.PlayerUId?.value);
-              /**
-                 * This is a player. Determine if there are any changes we need to make to this player,
-                 * and write our data to file.
-                 */
-              console.log('Processing player...', normalizedGuid);
 
               // See if there are other players with our handle
               const {
                 value: thisPlayerRawData
               } = rawPlayer?.value?.RawData?.value?.object?.SaveParameter;
+
+              /**
+                 * This is a player. Determine if there are any changes we need to make to this player,
+                 * and write our data to file.
+                 */
+              console.log(`Processing player "${thisPlayerRawData?.NickName?.value}" (GUID ${normalizedGuid})...`);
+              
 
               const playerChangesToMake = changesToMake?.players?.find(
                 x => normalizeGuid(x.guid) === normalizedGuid || x.handle === thisPlayerRawData?.NickName?.value
@@ -576,6 +580,8 @@ const saveEditorMain = async () => {
                   playerChangesToMake,
                 });
 
+                console.info('modified', modifiedPlayerJson)
+
                 if (changeErrorsForThisPlayer.length > 0) {
                   warnings = [
                     ...warnings,
@@ -618,7 +624,7 @@ const saveEditorMain = async () => {
           }
           
 
-          console.info('Properties processed.')
+          console.info('All Level.sav `properties` processed.')
         }
         /**
          * If for some reason we hit this, it means we have a new top-level chunk we aren't expecting to see
@@ -810,7 +816,7 @@ const saveEditorMain = async () => {
             if (appConfig?.skipSavJsonConversion) {
               warnings.push(`Unable to find the a JSON sav file for "${playerToModify.handle}". You opted to skip conversion, so Paver will not attempt to convert their SAV and some changes, like appearance and tech points, will not be made.`);
             } else {
-              warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPathJson}.`);
+              warnings.push(`Unable to find the player file for "${playerToModify.handle}" at ${targetPlayerPathJson}. Some changes, like techPoints, are stored in the player file, so these changes will not be made!`);
             }
           }
         }

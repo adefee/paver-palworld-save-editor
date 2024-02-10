@@ -335,6 +335,11 @@ export interface ISaveAsJsonPalPlayerDataFields {
     },
     type?: "ArrayProperty"
   },
+  UnusedStatusPoint?: {
+    id?: null
+    value?: number,
+    type?: "IntProperty"
+  },
   /**
    * List of status point values.
    * Some of these originally (pre v0.1.2.0) had non-unicode-encoded characters. For backwards compatibility, we need to look for both the unicode and non-unicode versions of these strings.

@@ -19,6 +19,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
     subTypeKey?: string,
     subTypeValue?: string,
     findWithFilter?: (val: any) => boolean,
+    struct_id?: string, // Some fields may optionally contain a struct_id, which we use if we need to rebuild the entire object (e.g. maxSp may not exist)
+    struct_type?: string, // Some fields may optionally contain a struct_type, which we use if we need to rebuild the entire object (e.g. maxSp may not exist)
     paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
   }
 } => {
@@ -42,6 +44,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
       whatDoesThiDo?: boolean,
       subTypeKey?: string,
       subTypeValue?: string,
+      struct_id?: string,
+      struct_type?: string,
       findWithFilter?: (val: any) => boolean,
       paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
     }
@@ -95,6 +99,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
       parameterId: null,
       targetKey: 'MaxSP.value.Value.value',
       type: 'Int64Property',
+      struct_type: 'FixedPoint64',
+      struct_id: '00000000-0000-0000-0000-000000000000',
       validate: (val) => Number.isInteger(val) && val >= 0,
       validationError: 'currentSp should be an integer greater than 0. The ingame default is 50000.',
     },

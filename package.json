@@ -24,7 +24,7 @@
     "package:run": "echo Starting package... && yarn package:1 && yarn package:2 && yarn package:4 && yarn package:6 && echo Packaging should be completed!",
     "release": "yarn build && yarn package:run",
     "dev": "npx tsc && node ./dist/index.js",
-    "start": "node src/index.js",
+    "start": "npx tsc && node ./dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
