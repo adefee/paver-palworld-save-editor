@@ -237,8 +237,176 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
         workSpeed: fieldMapAliasedValues.workSpeed,
         workSpeeds: {
           targetKey: 'CraftSpeeds.value',
-          notSupported: "This field is not (yet) supported - it's values are heavily nested with a bunch of child 'WorkSuitability' objects that have unique nuance from other fields.",
           info: "This is the parent property for craft speed settings. This seems to affect base crafting/work speeds for specific types of crafts, items, etc.",
+          kindling: {
+            paverId: 'work.kindling',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::EmitFlame'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the EmitFlame WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.kindling should be an integer greater than 0.',
+          },
+          watering: {
+            paverId: 'work.watering',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Watering'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Watering WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.watering should be an integer greater than 0.',
+          },
+          planting: {
+            paverId: 'work.planting',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Seeding'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Seeding WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.planting should be an integer greater than 0.',
+          },
+          electricity: {
+            paverId: 'work.sparks',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::GenerateElectricity'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the GenerateElectricity WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.electricity should be an integer greater than 0.',
+          },
+          crafting: {
+            paverId: 'work.crafting',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Handcraft'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Handcraft WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.crafting should be an integer greater than 0.',
+          },
+          gathering: {
+            paverId: 'work.gathering',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Collection'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Collection WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.gathering should be an integer greater than 0.',
+          },
+          woodcutting: {
+            paverId: 'work.woodcutting',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Deforest'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Deforest WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.woodcutting should be an integer greater than 0.',
+          },
+          mining: {
+            paverId: 'work.mining',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Mining'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Mining WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.mining should be an integer greater than 0.',
+          },
+          oilExtraction: {
+            paverId: 'work.oilExtraction',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::OilExtraction'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the OilExtraction WorkSuitability stat for the player. Default is 5. No idea if this is used or not.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.oilExtraction should be an integer greater than 0.',
+          },
+          medicine: {
+            paverId: 'work.medicine',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::ProductMedicine'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the ProductMedicine WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.medicine should be an integer greater than 0.',
+          },
+          cooling: {
+            paverId: 'work.cooling',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Cool'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Cool WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.cooling should be an integer greater than 0.',
+          },
+          transport: {
+            paverId: 'work.transport',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::Transport'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the Transport WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.transport should be an integer greater than 0.',
+          },
+          farming: {
+            paverId: 'work.farming',
+            parameterId: null,
+            targetKey: 'CraftSpeeds.value.values',
+            targetFilteredKey: 'WorkSuitability.value.value',
+            findWithFilter: (spObj) => ['EPalWorkSuitability::MonsterFarm'].includes(spObj.StatusName.value),
+            type: 'EnumProperty',
+            info: "This governs number of points in the MonsterFarm WorkSuitability stat for the player. Default is 5.",
+            validate: (val) => enableGuardrails ?
+              Number.isInteger(val) && val >= 0 && val <= 10 :
+              Number.isInteger(val) && val >= 0,
+            validationError: 'workSpeeds.farming should be an integer greater than 0.',
+          },
         },
         support: {
           parameterId: null,
