@@ -134,7 +134,7 @@ This is probably not what we usually want, right? No problem - we calculate the 
       {
         "handle": "Ghostpixel",
         "statusPoints": {
-          "catchRate": 9001,
+          "captureRate": 9001,
         },
       }
     ]
@@ -145,7 +145,7 @@ Before we continue, let's talk about names real quick. There are two fields we u
 
 > Pro Tip: If you have multiple players with the same name, Paver will tell you it's indeterminate and will not make any changes to your save - we don't want to modify the wrong player! In such cases, you'll want to specify the `guid` field of the target player.
 
-Oh, and Ghost's capture rate? *It's OVER 9000!* Fun fact: We tried 5000 once and he had 100% capture rate with basic spheres on endgame bosses! On a more serious note, astute observers may have noticed that `catchRate` is inside of Status Points, where we also put HP, weight, stamina, etc. We were surprised, too, but this is how the save file organizes it. In cases like this, we've tried to keep our structure as close to that of the save file as possible so.
+Oh, and Ghost's capture rate? *It's OVER 9000!* Fun fact: We tried 5000 once and he had 100% capture rate with basic spheres on endgame bosses! On a more serious note, astute observers may have noticed that `captureRate` is inside of Status Points, where we also put HP, weight, stamina, etc. We were surprised, too, but this is how the save file organizes it. In cases like this, we've tried to keep our structure as close to that of the save file as possible so.
 
 ## Config Options
 Below is a list of all currently available options for the `config.json` file. All fields other than `gameSaveDirectoryPath` are optional; the values you see below are the defaults (by us or Palword). Below is an example with all currently possible options specified; look below that for a table/list that dives into the purpose of each.
@@ -205,7 +205,7 @@ Below is a list of all currently available options for the `config.json` file. A
           "stamina": 0,
           "attack": 0,
           "weight": 0,
-          "catchRate": 0,
+          "captureRate": 0,
           "workSpeed": 0,
         },
         "appearance": {

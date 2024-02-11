@@ -2,6 +2,7 @@ export interface IFieldMapEntry {
   info?: string,
   parameterId: string | null, // This will be the parameterId of the field, if it has one (amost never).
   targetKey: string,
+  targetFilteredKey?: string,
   type: string,
   validate?: (val: any) => boolean,
   validationError?: string,
@@ -187,6 +188,17 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
       validationError: 'Effigy count should be an integer >= 0',
       whatDoesThiDo: true,
     },
+    captureRate: {
+      paverId: 'statusPoints.captureRate',
+      parameterId: null,
+      targetKey: 'GotStatusPointList.value.values',
+      targetFilteredKey: 'StatusPoint.value',
+      findWithFilter: (spObj) => ['\u6355\u7372\u7387', '捕獲率'].includes(spObj.StatusName.value),
+      type: 'IntProperty',
+      info: "This is stored in your SAV file underneath Status Points, but it's actually your capture rate (e.g. from Effigy Captures)! This bumps up your minimum capture rate. Have confirmed a value of 5000 here guarantees a basic blue sphere can 100% first try capture Jetragon, lol. Default is 0.",
+      validate: (val) => Number.isInteger(val) && val >= 0,
+      validationError: 'statusPoints.captureRate should be an integer greater than 0.',
+    },
   }
 
   switch (filename) {
@@ -287,17 +299,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             validate: (val) => Number.isInteger(val) && val >= 0,
             validationError: 'statusPoints.weight should be an integer greater than 0.',
           },
-          captureRate: {
-            paverId: 'statusPoints.captureRate',
-            parameterId: null,
-            targetKey: 'GotStatusPointList.value.values',
-            targetFilteredKey: 'StatusPoint.value',
-            findWithFilter: (spObj) => ['\u6355\u7372\u7387', '捕獲率'].includes(spObj.StatusName.value),
-            type: 'IntProperty',
-            info: "This is stored in your SAV file underneath Status Points, but it's actually your capture rate (e.g. from Effigy Captures)! This bumps up your minimum capture rate. Have confirmed a value of 5000 here guarantees a basic blue sphere can 100% first try capture Jetragon, lol. Default is 0.",
-            validate: (val) => Number.isInteger(val) && val >= 0,
-            validationError: 'statusPoints.captureRate should be an integer greater than 0.',
-          },
+          captureRate: fieldMapAliasedValues.captureRate,
+          catchRate: fieldMapAliasedValues.captureRate,
           workSpeed: {
             paverId: 'statusPoints.workSpeed',
             parameterId: null,

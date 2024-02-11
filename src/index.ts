@@ -158,7 +158,7 @@ const saveEditorMain = async () => {
       // We have our valid config now, make sure it isn't just the dummy one we created earlier.
       if (appConfig?.gameSaveDirectoryPath === '<path to your game save directory>') {
         criticalErrors.push('Your config.json file is still using the default example content we created for you. Please update your config.json file with your game save directory. See Paver documentation for a list of all available options.');
-      } else {
+      } else if (criticalErrors?.length < 1) {
         console.info(`Found a valid config file at "${configLocation}", and it appears to be in working order.`);
       }
     }
