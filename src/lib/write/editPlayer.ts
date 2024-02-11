@@ -68,13 +68,15 @@ export const editPlayerInLevelSav = ({
           if (thisSubFieldMapEntry) {
             recursivelyMakeChanges(subKey, thisSubChangeValue, thisSubFieldMapEntry);
           } else {
-            if (process.env.DEBUG) {
-              console.log('updatePlayerLevelSavData(): Invalid field name:', subKey);
-            }
+            console.log('updatePlayerLevelSavData(): Invalid field name:', subKey);
           }
         });
 
         return;
+      } else {
+        if (process.env.DEBUG) {
+          console.info("No followChildren flag found for", keyName)
+        }
       }
 
       if (singleFieldMapEntry?.whatDoesThiDo) {
@@ -175,8 +177,13 @@ export const editPlayerInLevelSav = ({
          * This would be defined in field map and would be useful for things like status points, where changing the status points would also change the maxHp, maxSp, etc.
          */
 
-        // User wants to adjust status point on maxHp
-        if (singleFieldMapEntry?.paverId === 'statusPoints.maxHp') {
+        // User wants to adjust status point on health
+        // Only make these changes if they haven't already been defined in the changes to make.
+        if (
+          singleFieldMapEntry?.paverId === 'statusPoints.health' &&
+          !playerChangesToMake.maxHp &&
+          !playerChangesToMake.maxHealth
+        ) {
           let tempNewAmount = 500000 + (newValue * 100000); // Work speed should be the base amt + (status points * 100)
           const tempRefFieldMapEntry = fieldMap['maxHp'];
           if (tempRefFieldMapEntry) {
@@ -211,9 +218,14 @@ export const editPlayerInLevelSav = ({
           }
         }
 
-        // User wants to adjust status point on maxSp
-        if (singleFieldMapEntry?.paverId === 'statusPoints.maxSp') {
-          let tempNewAmount = 100 + (newValue * 10); // Work speed should be the base amt + (status points * 10)
+        // User wants to adjust status point on stamina
+        // Only make these changes if they haven't already been defined in the changes to make.
+        if (
+          singleFieldMapEntry?.paverId === 'statusPoints.stamina' &&
+          !playerChangesToMake.maxSp &&
+          !playerChangesToMake.maxStamina
+          ) {
+          let tempNewAmount = 100 + (newValue * 10); // New value should be the base amt + (status points * 10)
           const tempRefFieldMapEntry = fieldMap['maxSp'];
           if (tempRefFieldMapEntry) {
             const tempNewChangeLog: IChangelogEntry = {
@@ -252,7 +264,11 @@ export const editPlayerInLevelSav = ({
          */
 
         // User wants to adjust status point on work speed
-        if (singleFieldMapEntry?.paverId === 'statusPoints.workSpeed') {
+        // Only make these changes if they haven't already been defined in the changes to make.
+        if (
+          singleFieldMapEntry?.paverId === 'statusPoints.workSpeed' &&
+          !playerChangesToMake.workSpeed
+        ) {
           const newWorkSpeedAmt = 100 + (newValue * 50); // Work speed should be the base amt + (status points * 50)
           const workSpeedFieldMapEntry = fieldMap['workSpeed'];
           if (workSpeedFieldMapEntry) {

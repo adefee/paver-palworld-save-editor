@@ -11,8 +11,12 @@ export interface IPaverConfigPlayerChanges {
   ],
   relicsInPossession?: 0,
   currentHp?: number,
+  // @deprecated
   maxHp?: number,
+  maxHealth?: number,
+  // @deprecated
   maxSp?: number,
+  maxStamina?: number,
   hunger?: number,
   sanityValue?: number,
   isPlayer?: true,
@@ -20,8 +24,8 @@ export interface IPaverConfigPlayerChanges {
   support?: number,
   unusedStatusPoint?: number,
   statusPoints?: {
-    maxHp?: number,
-    maxSp?: number,
+    health?: number,
+    stamina?: number,
     attack?: number,
     weight?: number,
     catchRate?: number,

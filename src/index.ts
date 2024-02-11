@@ -580,8 +580,6 @@ const saveEditorMain = async () => {
                   playerChangesToMake,
                 });
 
-                console.info('modified', modifiedPlayerJson)
-
                 if (changeErrorsForThisPlayer.length > 0) {
                   warnings = [
                     ...warnings,

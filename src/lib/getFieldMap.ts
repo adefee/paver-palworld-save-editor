@@ -202,8 +202,10 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
         currentHP: fieldMapAliasedValues.currentHp,
         maxHp: fieldMapAliasedValues.maxHp,
         maxHP: fieldMapAliasedValues.maxHp,
+        maxHealth: fieldMapAliasedValues.maxHp,
         maxSp: fieldMapAliasedValues.maxSp,
         maxSP: fieldMapAliasedValues.maxSp,
+        maxStamina: fieldMapAliasedValues.maxSp,
         hunger: fieldMapAliasedValues.hunger,
         fullStomach: fieldMapAliasedValues.hunger,
         sanityValue: fieldMapAliasedValues.sanityValue,
@@ -241,8 +243,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
         statusPoints: {
           info: "This is the parent property for status point settings. By default, you receive an new `unusedStatusPoint` every level, which can be spent here. These will be added to your base stats (hp, weight, stamina, etc). The ingame default is 0 for all values.",
           followChildren: true, // tell iterator to follow the children keys instead of just this key
-          maxHp: {
-            paverId: 'statusPoints.maxHp',
+          health: {
+            paverId: 'statusPoints.health',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
@@ -252,8 +254,8 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             validate: (val) => Number.isInteger(val) && val >= 0,
             validationError: 'statusPoints.maxHp should be an integer greater than 0.',
           },
-          maxSp: {
-            paverId: 'statusPoints.maxSp',
+          stamina: {
+            paverId: 'statusPoints.stamina',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
@@ -286,6 +288,7 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
             validationError: 'statusPoints.weight should be an integer greater than 0.',
           },
           captureRate: {
+            paverId: 'statusPoints.captureRate',
             parameterId: null,
             targetKey: 'GotStatusPointList.value.values',
             targetFilteredKey: 'StatusPoint.value',
