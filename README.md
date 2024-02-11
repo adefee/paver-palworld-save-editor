@@ -79,7 +79,7 @@ Let's give player "Lent" 42 Technology Points and add 10 Stat Points to his HP. 
         "handle": "Lent",
         "techPoints": 42,
         "statusPoints": {
-          "maxHp": 10,
+          "health": 10,
         },
         "appearance": {
           "bodyType": "TypeB",
@@ -192,8 +192,8 @@ Below is a list of all currently available options for the `config.json` file. A
         ],
         "countEffigiesFound": 0,
         "currentHp": 50000,
-        "maxHp": 50000,
-        "maxSp": 50000,
+        "maxHealth": 50000,
+        "maxStamina": 50000,
         "hunger": 100,
         "sanityValue": 100,
         "isPlayer": true,
@@ -201,8 +201,8 @@ Below is a list of all currently available options for the `config.json` file. A
         "support": 100,
         "unusedStatusPoint": 0,
         "statusPoints": {
-          "maxHp": 0,
-          "maxSp": 0,
+          "health": 0,
+          "stamina": 0,
           "attack": 0,
           "weight": 0,
           "catchRate": 0,
