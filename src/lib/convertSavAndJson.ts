@@ -13,7 +13,7 @@ const execAsync = promisify(exec);
  * @param {string} label Optional label for use in console output, makes things more human-friendly
  * @returns {[boolean, string[]]} Array with success (boolean), and array of applicable errors.
  */
-const convertSavAndJson = async (relativeInstallPath: string, targetPath: string, label: string = ''): Promise<[boolean, string[]]> => {
+const convertSavAndJson = async (relativeInstallPath: string, targetPath: string, label: string = '', stageOutput: boolean = false): Promise<[boolean, string[]]> => {
   const errors = [];
 
   let convertTargetType = 'SAV';
@@ -25,7 +25,13 @@ const convertSavAndJson = async (relativeInstallPath: string, targetPath: string
 
   console.info(`Running CheahJS' awesome save-tools to convert to ${convertTargetType} in ${fullTargetConversionPath} (this may take time based on save filesize):`);
 
-  const { stdout, stderr } = await execAsync(`python "${relativeInstallPath}/convert.py" "${targetPath}"`);
+  let pyCmd = `python "${relativeInstallPath}/convert.py" "${targetPath}"`;
+  if (stageOutput) {
+    console.info(`Staging output to ${targetPath}${convertTargetType === 'SAV' ? '' : '.json'}.staged`)
+    pyCmd += ` --output="${targetPath.replace('.json', '')}${convertTargetType === 'SAV' ? '' : '.json'}.staged"`
+  }
+
+  const { stdout, stderr } = await execAsync(pyCmd);
   console.log(stdout);
 
   if (stderr) {

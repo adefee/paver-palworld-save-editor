@@ -13,26 +13,36 @@ const setNestedValue = (objectToModify, fieldMap, newValue) => {
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
 
+    // Check if we need to create a new object or a specific structure
     if (!currentObject[key]) {
-      currentObject[key] = {};
+      // If structure info is provided for this level, use it to create the structure
+      if (fieldMap.structure && fieldMap.structure[i]) {
+        currentObject[key] = { ...fieldMap.structure[i] }; // Use spread to clone structure if needed
+      } else {
+        currentObject[key] = {};
+      }
     }
 
     currentObject = currentObject[key];
   }
 
   const lastKey = keys[keys.length - 1];
-  // Record the old value and return it and log.
   oldValue = currentObject[lastKey];
 
+  // Handle setting new value and possibly additional metadata
   if (!oldValue) {
-    // There was no previous value, so we need to add some add'l meta to this new property
-    // Seems like id is (always?) null here.
-    // Set additional properties at the same level
-    currentObject['id'] = fieldMap?.parameterId || null;
-    currentObject[lastKey] = newValue;
-    currentObject['type'] = fieldMap?.type;
+    // Check if there's a structure defined for the new key
+    if (fieldMap.structure && fieldMap.structure[keys.length - 1]) {
+      // Merge the structure with the current object, ensuring new value is set
+      Object.assign(currentObject, { ...fieldMap.structure[keys.length - 1], [lastKey]: newValue });
+    } else {
+      // No specific structure, proceed as before
+      currentObject['id'] = fieldMap?.parameterId || null;
+      currentObject[lastKey] = newValue;
+      currentObject['type'] = fieldMap?.type;
+    }
   } else {
-    currentObject[keys[keys.length - 1]] = newValue;
+    currentObject[lastKey] = newValue;
   }
 
   return {

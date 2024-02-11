@@ -1,3 +1,23 @@
+export interface IFieldMapEntry {
+  info?: string,
+  parameterId: string | null, // This will be the parameterId of the field, if it has one (amost never).
+  targetKey: string,
+  type: string,
+  validate?: (val: any) => boolean,
+  validationError?: string,
+  postprocess?: (val: any) => any,
+  notSupported?: string,
+  followChildren?: boolean,
+  whatDoesThiDo?: boolean,
+  subTypeKey?: string,
+  subTypeValue?: string,
+  findWithFilter?: (val: any) => boolean,
+  struct_id?: string, // Some fields may optionally contain a struct_id, which we use if we need to rebuild the entire object (e.g. maxSp may not exist)
+  struct_type?: string, // Some fields may optionally contain a struct_type, which we use if we need to rebuild the entire object (e.g. maxSp may not exist)
+  paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
+  structure?: any
+}
+
 /**
  * 
  * @param filename Filename (Level.sav or Player.sav). This just lets us more easily discriminate which values are available for which file.
@@ -5,24 +25,7 @@
  * @returns 
  */
 export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = true): {
-  [key: string]: {
-    info?: string,
-    parameterId: string | null, // This will be the parameterId of the field, if it has one (amost never).
-    targetKey: string,
-    type: string,
-    validate?: (val: any) => boolean,
-    validationError?: string,
-    postprocess?: (val: any) => any,
-    notSupported?: string,
-    followChildren?: boolean,
-    whatDoesThiDo?: boolean,
-    subTypeKey?: string,
-    subTypeValue?: string,
-    findWithFilter?: (val: any) => boolean,
-    struct_id?: string, // Some fields may optionally contain a struct_id, which we use if we need to rebuild the entire object (e.g. maxSp may not exist)
-    struct_type?: string, // Some fields may optionally contain a struct_type, which we use if we need to rebuild the entire object (e.g. maxSp may not exist)
-    paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
-  }
+  [key: string]: IFieldMapEntry
 } => {
   let returnValue = {};
   const defaultNotSupportedValue = "This field is not (yet) supported - it should be available in the near future!";
@@ -31,24 +34,7 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
    * Build an initial map of values, and then our switch statement can reference the same value with aliases as needed
    */
   const fieldMapAliasedValues: {
-    [key: string]: {
-      info?: string,
-      parameterId: string | null, // This will be the parameterId of the field, if it has one (amost never).
-      targetKey: string,
-      type: string,
-      validate?: (val: any) => boolean,
-      validationError?: string,
-      postprocess?: (val: any) => any,
-      notSupported?: string,
-      followChildren?: boolean,
-      whatDoesThiDo?: boolean,
-      subTypeKey?: string,
-      subTypeValue?: string,
-      struct_id?: string,
-      struct_type?: string,
-      findWithFilter?: (val: any) => boolean,
-      paverId?: string, // Some fields may optionally contain a paverId, which is just an internal identifer for when Paver applies custom logic.
-    }
+    [key: string]: IFieldMapEntry
   } = {
     level: {
       info: "This is a player's level. Specifying `level` without `exp` will automatically calculate and set the player to the matching total XP for the specified level.",
@@ -93,16 +79,30 @@ export const getPlayerFieldMapByFile = (filename: string, enableGuardrails = tru
       type: 'Int64Property',
       validate: (val) => Number.isInteger(val) && val >= 0,
       validationError: 'currentHp should be an integer greater than 0. The ingame default is 50000.',
+      structure: [
+        // Level 1 structure for 'HP'
+        { "struct_type": "FixedPoint64", "struct_id": "00000000-0000-0000-0000-000000000000", "id": null, "type": "StructProperty" },
+        // Level 2 structure for 'value'
+        {},
+        // Level 3 structure for 'Value'
+        { "id": null, "type": "StructProperty" }
+      ]
     },
     maxSp: {
       info: "This is the player's base maximum Stamina, before add'l modifiers (like Pals and stat points, etc). The ingame default is 50000.",
       parameterId: null,
       targetKey: 'MaxSP.value.Value.value',
       type: 'Int64Property',
-      struct_type: 'FixedPoint64',
-      struct_id: '00000000-0000-0000-0000-000000000000',
       validate: (val) => Number.isInteger(val) && val >= 0,
       validationError: 'currentSp should be an integer greater than 0. The ingame default is 50000.',
+      structure: [
+        // Level 1 structure for 'HP'
+        { "struct_type": "FixedPoint64", "struct_id": "00000000-0000-0000-0000-000000000000", "id": null, "type": "StructProperty" },
+        // Level 2 structure for 'value'
+        {},
+        // Level 3 structure for 'Value'
+        { "id": null, "type": "StructProperty" }
+      ]
     },
     hunger: {
       info: "This is the player's hunger. The ingame default is 100. For some reason, the game calculates this as a 14-point float. Not sure why it needs that much precision.",

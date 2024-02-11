@@ -687,15 +687,21 @@ const saveEditorMain = async () => {
         }
 
         if (!isErrorsInConvertion && criticalErrors.length < 1) {
-          console.info('Removing old Level.sav before generating new one...')
-          if (fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav`)) {
-            deleteFileSync(`${targetGameSaveDirectoryPath}/Level.sav`);
-          }
-
+          
           // Now let's call CheahJS's tools to convert into Level.sav
-          await convertSavAndJson(saveToolsInstallPath, levelSavJsonPath, 'Level.sav');
+          // The extra boolean here will tell us to export a staged file so we don't overwrite the old yet.
+          // This way, if there are errors with conversion (either our fault or CheahJS), we don't lose the original.
+          await convertSavAndJson(saveToolsInstallPath, levelSavJsonPath, 'Level.sav.json', true);
+
+          // If we have a staged file, we'll move it over the original.
+          if (fs.existsSync(`${targetGameSaveDirectoryPath}/Level.sav.staged`)) {
+            console.info("Staged changes to Level.sav appear to have been sucessful, so we'll now overwrite Level.sav with the staged changes. Hope you made a backup :)")
+            fs.renameSync(`${targetGameSaveDirectoryPath}/Level.sav.staged`, `${targetGameSaveDirectoryPath}/Level.sav`);
+          } else {
+            console.info("Unable to find staged LEvel.sav")
+          }
         } else if (isErrorsInConvertion) {
-          criticalErrors.push('Errors encountered when converting Level.sav.json back into Level.sav.');
+          criticalErrors.push('Errors encountered when converting Level.sav.json back into Level.sav. Your original Level.sav file should not have been modified.');
         }
 
       } catch (err) {
