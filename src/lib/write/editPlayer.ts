@@ -184,7 +184,7 @@ export const editPlayerInLevelSav = ({
           !playerChangesToMake.maxHp &&
           !playerChangesToMake.maxHealth
         ) {
-          let tempNewAmount = 500000 + (newValue * 100000); // Work speed should be the base amt + (status points * 100)
+          let tempNewAmount = 500000 + (newValue * 100000); // Work speed should be the base amt + (status points * 100,000). base amt is 500K, with 100K per status point added.
           const tempRefFieldMapEntry = fieldMap['maxHp'];
           if (tempRefFieldMapEntry) {
             const tempNewChangeLog: IChangelogEntry = {
@@ -225,7 +225,7 @@ export const editPlayerInLevelSav = ({
           !playerChangesToMake.maxSp &&
           !playerChangesToMake.maxStamina
           ) {
-          let tempNewAmount = 100 + (newValue * 10); // New value should be the base amt + (status points * 10)
+          let tempNewAmount = 100000 + (newValue * 10000); // New value should be the base amt + (status points * 10). Stamina base is 100K, with 10K per status point added.
           const tempRefFieldMapEntry = fieldMap['maxSp'];
           if (tempRefFieldMapEntry) {
             const tempNewChangeLog: IChangelogEntry = {
@@ -235,7 +235,7 @@ export const editPlayerInLevelSav = ({
               field: keyName,
               keyInFile: tempRefFieldMapEntry.targetKey,
               newValue: tempNewAmount,
-              notes: `${keyName} should be the base amount (100) plus (status points * 10). This field was modified because this player's "${singleFieldMapEntry?.paverId}" was updated.`,
+              notes: `${keyName} should be the base amount of 100K plus (status points * 10K). This field was modified because this player's "${singleFieldMapEntry?.paverId}" was updated.`,
             }
 
             const {
@@ -269,7 +269,7 @@ export const editPlayerInLevelSav = ({
           singleFieldMapEntry?.paverId === 'statusPoints.workSpeed' &&
           !playerChangesToMake.workSpeed
         ) {
-          const newWorkSpeedAmt = 100 + (newValue * 50); // Work speed should be the base amt + (status points * 50)
+          const newWorkSpeedAmt = 100 + (newValue * 50); // Work speed should be the base amt + (status points * 50). Base is 100, with 50 per status point added.
           const workSpeedFieldMapEntry = fieldMap['workSpeed'];
           if (workSpeedFieldMapEntry) {
             const workSpeedChangeLog: IChangelogEntry = {
