@@ -1,7 +1,9 @@
 # **Paver**: A Palworld Save Editor
 A comprehensive and extensible save editor and reporting tool for Palworld, intended to work with any version of Palworld v0.1.2.0 and above. Point it to your save directory (where your Level.sav is) and go!
 
-This project is in early development. I've tried to make it user-friendly and safety-first (don't write changes if anything goes wrong), but **I'll always recommend making a backup of your save before using this tool.**
+> Paver 2.1.X has been around a while and is generally considered stable and safe to use. That said, I've more recently been busy @ work and with other projects, so at this point I'm no longer actively developing Paver. If you like Paver, feel free to extend it (within the confines of Paver's license).
+
+I've tried to make Paver user-friendly and safety-first (don't write changes if anything goes wrong), but **I'll always recommend making a backup of your save before using this tool.**
 
 > Questions? Bugs? Ideas? [Join the Paver Discord](https://discord.gg/tu2rnEBWn9)
 
